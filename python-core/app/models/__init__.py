@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class OrderStatus(str, Enum):
@@ -61,6 +61,19 @@ class Ticket(BaseModel):
     status: TicketStatus = Field(default=TicketStatus.OPEN, description="工单状态")
     created_at: datetime = Field(..., description="创建时间")
     estimated_processing_time: datetime = Field(..., description="预计处理时间")
+
+    @field_validator('ticket_id')
+    @classmethod
+    def ticket_id_must_start_with_tkt(cls, v: str) -> str:
+        """Ticket ID must start with 'TKT' followed by digits."""
+        if not v.startswith('TKT'):
+            raise ValueError('ticket_id must start with "TKT"')
+        if len(v) <= 3:
+            raise ValueError('ticket_id must have a numeric timestamp after "TKT"')
+        numeric_part = v[3:]
+        if not numeric_part.isdigit():
+            raise ValueError('ticket_id timestamp must be numeric')
+        return v
 
 
 class IntentType(str, Enum):

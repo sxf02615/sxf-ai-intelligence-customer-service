@@ -49,7 +49,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Configure repository settings (mock vs real data source)
   - _Requirements: NFR4, NFR5_
 
-- [ ]* 1.6 Write property tests for data models
+- [x] 1.6 Write property tests for data models
   - **Property 1**: Order status validation
   - **Validates: Requirements DR4**
   - **Property 2**: Ticket ID format validation (TKT+timestamp)
@@ -59,7 +59,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 2. Python Core - Core Services Implementation
 
-- [ ] 2.1 Implement Intent Recognition Service
+- [x] 2.1 Implement Intent Recognition Service
   - Create app/services/intent_recognition.py
   - Implement LangChain integration with structured output
   - Create prompt template for intent classification
@@ -67,7 +67,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Handle clarification when confidence is low
   - _Requirements: FR2.1, FR2.2, FR2.3, FR2.4, FR2.5_
 
-- [ ] 2.2 Implement Logistics Service
+- [x] 2.2 Implement Logistics Service
   - Create app/services/logistics.py
   - Implement order status retrieval
   - Implement tracking history retrieval (last 3 events)
@@ -75,7 +75,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Format response with latest_status, estimated_delivery, tracking_history
   - _Requirements: FR3.1, FR3.2, FR3.3, FR3.4_
 
-- [ ] 2.3 Implement Urgent Ticket Service
+- [x] 2.3 Implement Urgent Ticket Service
   - Create app/services/urgent.py
   - Implement ticket creation with TKT+timestamp ID generation
   - Implement priority assignment logic
