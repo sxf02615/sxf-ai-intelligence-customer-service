@@ -44,6 +44,14 @@ class LoggingConfig(BaseModel):
     level: str = "INFO"
 
 
+class CORSConfig(BaseModel):
+    """CORS (Cross-Origin Resource Sharing) configuration settings."""
+    allow_origins: list = ["*"]
+    allow_credentials: bool = True
+    allow_methods: list = ["*"]
+    allow_headers: list = ["*"]
+
+
 class Settings(BaseModel):
     """
     Application settings loaded from environment variables.
@@ -55,6 +63,9 @@ class Settings(BaseModel):
     
     # Application Configuration
     app: AppConfig = AppConfig()
+    
+    # CORS Configuration
+    cors: CORSConfig = CORSConfig()
     
     # Data Source Configuration
     # Set to "mock" for mock data, or "real" for real business system
@@ -156,6 +167,15 @@ def load_settings() -> Settings:
         debug=_get_bool_env("DEBUG", False)
     )
     
+    # CORS settings
+    cors_origins = _get_env("CORS_ALLOW_ORIGINS", "*").split(",")
+    cors_config = CORSConfig(
+        allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
+        allow_credentials=_get_bool_env("CORS_ALLOW_CREDENTIALS", True),
+        allow_methods=_get_env("CORS_ALLOW_METHODS", "*").split(","),
+        allow_headers=_get_env("CORS_ALLOW_HEADERS", "*").split(",")
+    )
+    
     # Data source
     data_source_value = _get_env("DATA_SOURCE", "mock").lower()
     data_source = DataSourceType.MOCK
@@ -180,6 +200,7 @@ def load_settings() -> Settings:
     return Settings(
         llm=llm_config,
         app=app_config,
+        cors=cors_config,
         data_source=data_source,
         session=session_config,
         intent=intent_config,

@@ -103,21 +103,21 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 3. Python Core - API Routes
 
-- [ ] 3.1 Create API router structure
+- [x] 3.1 Create API router structure
   - Create app/api/__init__.py
   - Create app/api/routes.py
   - Set up FastAPI application instance
   - Configure CORS for cross-origin requests
   - _Requirements: NFR1_
 
-- [ ] 3.2 Implement chat API endpoint
+- [x] 3.2 Implement chat API endpoint
   - POST /api/v1/chat
   - Implement intent recognition routing
   - Route to appropriate service (logistics, urgent, cancel)
   - Return structured response with intent, response, session_id
   - _Requirements: FR2.2, FR2.3, FR2.4_
 
-- [ ] 3.3 Implement logistics API endpoint
+- [-] 3.3 Implement logistics API endpoint
   - GET /api/v1/logistics/{order_id}
   - Validate order_id format (ORD+数字)
   - Return formatted logistics information
