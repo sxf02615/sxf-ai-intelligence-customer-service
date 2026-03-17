@@ -13,16 +13,13 @@ from pydantic import BaseModel
 from typing import Optional
 
 # Import models
-from app.models.intent import IntentType, IntentResult, IntentEntities
-from app.models.order import Order, CancelResult
-from app.models.logistics import LogisticsInfo
-from app.models.ticket import Ticket
+from app.models import IntentType, IntentResult, IntentEntities, Order, LogisticsInfo, Ticket
 
 # Import services
 from app.services.intent_recognition import get_intent_recognition_service, IntentRecognitionService
 from app.services.logistics import LogisticsService
 from app.services.urgent import UrgentService
-from app.services.cancel import CancelService
+from app.services.cancel import CancelService, CancelResult
 
 # Import repositories
 from app.repositories.base import OrderRepository, LogisticsRepository, TicketRepository
@@ -246,69 +243,129 @@ async def chat_endpoint(
 
 
 @router.get("/logistics/{order_id}", response_model=dict)
-async def get_logistics(order_id: str) -> dict:
+async def get_logistics(
+    order_id: str,
+    logistics_service: LogisticsService = Depends(get_logistics_service),
+) -> dict:
     """
     Get logistics information for an order.
     
     Args:
         order_id: Order ID (format: ORD+number)
+        logistics_service: Logistics service instance
         
     Returns:
         Logistics information including status, tracking history, and estimated delivery
     """
-    # TODO: Implement in Task 3.3
+    # Validate order_id format (ORD+数字)
+    import re
+    if not re.match(r'^ORD\d+$', order_id):
+        return {
+            "success": False,
+            "error": "Invalid order ID format",
+            "message": "订单号格式不正确，请使用 ORD+数字 的格式，例如：ORD001"
+        }
+    
+    # Get logistics information
+    logistics_info = logistics_service.get_logistics_info(order_id)
+    
+    # Handle order not found
+    if not logistics_info:
+        return {
+            "success": False,
+            "error": "Order not found",
+            "message": f"未找到订单 {order_id}，请检查订单号是否正确"
+        }
+    
+    # Return formatted logistics information
     return {
         "success": True,
         "data": {
-            "order_id": order_id,
-            "status": "unknown",
-            "latest_status": "Order not found",
-            "estimated_delivery": None,
-            "tracking_history": []
+            "order_id": logistics_info.order_id,
+            "status": logistics_info.status.value if hasattr(logistics_info.status, 'value') else logistics_info.status,
+            "latest_status": logistics_info.latest_status,
+            "estimated_delivery": logistics_info.estimated_delivery.isoformat() if logistics_info.estimated_delivery else None,
+            "tracking_history": [
+                {
+                    "status": event.status,
+                    "timestamp": event.timestamp.isoformat(),
+                    "location": event.location
+                }
+                for event in logistics_info.tracking_history
+            ]
         }
     }
 
 
 @router.post("/tickets/urgent", response_model=dict)
-async def create_urgent_ticket(request: dict) -> dict:
+async def create_urgent_ticket(
+    request: dict,
+    urgent_service: UrgentService = Depends(get_urgent_service),
+) -> dict:
     """
     Create an urgent ticket for an order.
     
     Args:
         request: Request containing order_id and optional reason
+        urgent_service: Urgent ticket service instance
         
     Returns:
         Ticket information including ticket_id, estimated processing time, and contact
     """
-    # TODO: Implement in Task 3.4
+    order_id = request.get("order_id")
+    reason = request.get("reason")
+    
+    if not order_id:
+        return {
+            "success": False,
+            "error": "order_id is required"
+        }
+    
+    result = urgent_service.create_urgent_ticket(order_id, reason)
+    
     return {
         "success": True,
         "data": {
-            "ticket_id": "TKT-placeholder",
-            "estimated_processing_time": None,
-            "contact": "客服热线：400-xxx-xxxx"
+            "ticket_id": result["ticket_id"],
+            "order_id": result["order_id"],
+            "estimated_processing_time": result["estimated_processing_time"],
+            "contact": result["contact"]
         }
     }
 
 
 @router.post("/orders/cancel", response_model=dict)
-async def cancel_order(request: dict) -> dict:
+async def cancel_order(
+    request: dict,
+    cancel_service: CancelService = Depends(get_cancel_service),
+) -> dict:
     """
     Cancel an order and process refund.
     
     Args:
         request: Request containing order_id and reason
+        cancel_service: Cancel order service instance
         
     Returns:
         Cancel result including refund amount and arrival time
     """
-    # TODO: Implement in Task 3.5
+    order_id = request.get("order_id")
+    reason = request.get("reason")
+    
+    if not order_id:
+        return {
+            "success": False,
+            "error": "order_id is required"
+        }
+    
+    result = cancel_service.cancel_order(order_id, reason)
+    
     return {
-        "success": True,
+        "success": result.success,
         "data": {
-            "order_id": request.get("order_id"),
-            "refund_amount": 0.0,
-            "refund_arrival_time": None,
-            "message": "Cancel endpoint not yet implemented"
+            "order_id": result.order_id,
+            "refund_amount": result.refund_amount,
+            "refund_arrival_time": result.refund_arrival_time.isoformat() if result.refund_arrival_time else None,
+            "message": result.message
         }
     }

@@ -117,20 +117,20 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Return structured response with intent, response, session_id
   - _Requirements: FR2.2, FR2.3, FR2.4_
 
-- [-] 3.3 Implement logistics API endpoint
+- [x] 3.3 Implement logistics API endpoint
   - GET /api/v1/logistics/{order_id}
   - Validate order_id format (ORD+数字)
   - Return formatted logistics information
   - Handle order not found error
   - _Requirements: FR3.1, FR3.2, FR3.3, FR3.4_
 
-- [ ] 3.4 Implement urgent ticket API endpoint
+- [x] 3.4 Implement urgent ticket API endpoint
   - POST /api/v1/tickets/urgent
   - Accept order_id and optional reason
   - Create ticket and return ticket_id, estimated_processing_time, contact
   - _Requirements: FR4.1, FR4.2, FR4.3, FR4.4_
 
-- [ ] 3.5 Implement cancel order API endpoint
+- [x] 3.5 Implement cancel order API endpoint
   - POST /api/v1/orders/cancel
   - Accept order_id and reason
   - Validate order status and process cancellation
