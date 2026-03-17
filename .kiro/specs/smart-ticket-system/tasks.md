@@ -83,7 +83,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Implement客服 notification (logging)
   - _Requirements: FR4.1, FR4.2, FR4.3, FR4.4_
 
-- [ ] 2.4 Implement Cancel Order Service
+- [x] 2.4 Implement Cancel Order Service
   - Create app/services/cancel.py
   - Implement order status validation (cancelled, delivered, other)
   - Implement cancel logic for valid orders
