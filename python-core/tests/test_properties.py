@@ -122,10 +122,11 @@ class TestTicketIdFormatValidation(unittest.TestCase):
         """Ticket ID must reject invalid formats."""
         invalid_ids = [
             "TICKET123",  # Wrong prefix
-            "TKT",  # No timestamp
+            "TKT",  # No content after TKT
             "123456",  # No prefix
-            "TKT-123",  # Invalid character
-            "TKT123abc",  # Non-numeric characters
+            "TKT-123",  # Invalid character (-)
+            "TKT@123",  # Invalid character (@)
+            "TKT#abc",  # Invalid character (#)
         ]
         for invalid_id in invalid_ids:
             with self.assertRaises((ValueError, AssertionError)):
@@ -295,6 +296,552 @@ class TestMockDataRoundTripConsistency(unittest.TestCase):
         self.assertEqual(len(tickets), 3)
         for ticket in tickets:
             self.assertEqual(ticket.order_id, order_id)
+
+
+# =============================================================================
+# Property Tests for Core Services (Task 2.5)
+# =============================================================================
+
+class TestIntentRecognitionRoundTrip(unittest.TestCase):
+    """Property 4: Intent recognition round-trip (parse → print → parse)
+    
+    Validates: Requirements FR2.1
+    FR2.1: 系统必须使用 LangChain + Pydantic 进行结构化输出
+    """
+
+    def test_intent_result_serialization_round_trip(self):
+        """IntentResult should survive serialization and deserialization."""
+        from app.models import IntentResult, IntentType, IntentEntities
+        
+        # Create an IntentResult
+        original = IntentResult(
+            intent=IntentType.LOGISTICS,
+            confidence=0.85,
+            entities=IntentEntities(order_id="ORD001", user_detail="查询物流"),
+            needs_clarification=False,
+        )
+        
+        # Serialize to dict
+        data = original.model_dump()
+        
+        # Deserialize back
+        restored = IntentResult.model_validate(data)
+        
+        # Verify all fields match
+        self.assertEqual(restored.intent, original.intent)
+        self.assertEqual(restored.confidence, original.confidence)
+        self.assertEqual(restored.entities.order_id, original.entities.order_id)
+        self.assertEqual(restored.entities.user_detail, original.entities.user_detail)
+        self.assertEqual(restored.needs_clarification, original.needs_clarification)
+
+    def test_intent_entities_serialization_round_trip(self):
+        """IntentEntities should survive serialization and deserialization."""
+        from app.models import IntentEntities
+        
+        # Test with various entity combinations
+        test_cases = [
+            IntentEntities(order_id="ORD001", user_detail=None),
+            IntentEntities(order_id=None, user_detail="催单原因"),
+            IntentEntities(order_id="ORD002", user_detail="取消订单"),
+            IntentEntities(order_id=None, user_detail=None),
+        ]
+        
+        for original in test_cases:
+            data = original.model_dump()
+            restored = IntentEntities.model_validate(data)
+            self.assertEqual(restored.order_id, original.order_id)
+            self.assertEqual(restored.user_detail, original.user_detail)
+
+    def test_intent_type_serialization_round_trip(self):
+        """IntentType enum should survive serialization and deserialization."""
+        from app.models import IntentType
+        
+        intent_types = [IntentType.LOGISTICS, IntentType.URGENT, IntentType.CANCEL]
+        
+        for intent in intent_types:
+            # Serialize to string
+            serialized = intent.value
+            # Deserialize back
+            restored = IntentType(serialized)
+            self.assertEqual(restored, intent)
+
+
+class TestLogisticsInfoCompleteness(unittest.TestCase):
+    """Property 5: Logistics info completeness
+    
+    Validates: Requirements FR3.4
+    FR3.4: 系统必须输出格式化物流信息，包括：最新状态、预计送达时间、最近 3 条轨迹
+    """
+
+    def test_logistics_info_contains_all_required_fields(self):
+        """LogisticsInfo should always contain all required fields."""
+        from app.models import LogisticsInfo, OrderStatus, TrackingEvent
+        from datetime import datetime
+        
+        # Create a complete LogisticsInfo
+        tracking_events = [
+            TrackingEvent(
+                status="Package shipped",
+                timestamp=datetime.now(),
+                location="Shanghai",
+            )
+        ]
+        
+        info = LogisticsInfo(
+            order_id="ORD001",
+            status=OrderStatus.SHIPPED,
+            latest_status="Package shipped",
+            estimated_delivery=datetime.now(),
+            tracking_history=tracking_events,
+        )
+        
+        # Verify all fields are present
+        self.assertIsNotNone(info.order_id)
+        self.assertIsNotNone(info.status)
+        self.assertIsNotNone(info.latest_status)
+        self.assertIsNotNone(info.tracking_history)
+
+    def test_logistics_info_tracking_history_stored(self):
+        """LogisticsInfo should store tracking history correctly."""
+        from app.models import LogisticsInfo, OrderStatus, TrackingEvent
+        from datetime import datetime, timedelta
+        
+        # Create multiple tracking events
+        events = [
+            TrackingEvent(
+                status=f"Event {i}",
+                timestamp=datetime.now() - timedelta(hours=i),
+                location=f"Location {i}",
+            )
+            for i in range(5)
+        ]
+        
+        info = LogisticsInfo(
+            order_id="ORD001",
+            status=OrderStatus.SHIPPED,
+            latest_status="Latest event",
+            estimated_delivery=None,
+            tracking_history=events,
+        )
+        
+        # Verify tracking history is stored
+        self.assertEqual(len(info.tracking_history), 5)
+
+    def test_logistics_info_empty_tracking_history(self):
+        """LogisticsInfo should handle empty tracking history."""
+        from app.models import LogisticsInfo, OrderStatus
+        
+        info = LogisticsInfo(
+            order_id="ORD001",
+            status=OrderStatus.PENDING,
+            latest_status="Order pending",
+            estimated_delivery=None,
+            tracking_history=[],
+        )
+        
+        # Verify empty tracking history is handled
+        self.assertEqual(info.tracking_history, [])
+        self.assertEqual(len(info.tracking_history), 0)
+
+
+class TestTicketCreationIdempotence(unittest.TestCase):
+    """Property 6: Ticket creation idempotence
+    
+    Validates: Requirements FR4.2
+    FR4.2: 系统必须创建工单（Ticket）并保存到存储
+    """
+
+    def test_ticket_creation_produces_unique_ids(self):
+        """Each ticket creation should produce a unique ticket ID."""
+        from app.services.urgent import UrgentService
+        from app.repositories.base import TicketRepository
+        from app.models import Ticket, TicketPriority, TicketStatus
+        from datetime import datetime
+        
+        # Create a mock repository
+        class MockTicketRepository(TicketRepository):
+            def __init__(self):
+                self.tickets = {}
+                self.order_tickets = {}
+                
+            def create(self, ticket: Ticket) -> Ticket:
+                self.tickets[ticket.ticket_id] = ticket
+                if ticket.order_id not in self.order_tickets:
+                    self.order_tickets[ticket.order_id] = []
+                self.order_tickets[ticket.order_id].append(ticket.ticket_id)
+                return ticket
+                
+            def get_by_id(self, ticket_id: str):
+                return self.tickets.get(ticket_id)
+                
+            def list_by_order(self, order_id: str):
+                ticket_ids = self.order_tickets.get(order_id, [])
+                return [self.tickets[tid] for tid in ticket_ids if tid in self.tickets]
+        
+        repo = MockTicketRepository()
+        service = UrgentService(repo)
+        
+        # Create multiple tickets for the same order
+        ticket_ids = []
+        for i in range(5):
+            result = service.create_urgent_ticket(
+                order_id="ORD001",
+                reason=f"催单原因 {i}"
+            )
+            ticket_ids.append(result["ticket_id"])
+        
+        # All ticket IDs should be unique
+        self.assertEqual(len(ticket_ids), len(set(ticket_ids)), "Ticket IDs should be unique")
+
+    def test_ticket_creation_produces_valid_format(self):
+        """Each ticket creation should produce a valid TKT+timestamp format."""
+        from app.services.urgent import UrgentService
+        from app.repositories.base import TicketRepository
+        from app.models import Ticket, TicketPriority, TicketStatus
+        from datetime import datetime
+        
+        class MockTicketRepository(TicketRepository):
+            def __init__(self):
+                self.tickets = {}
+                self.order_tickets = {}
+                
+            def create(self, ticket: Ticket) -> Ticket:
+                self.tickets[ticket.ticket_id] = ticket
+                if ticket.order_id not in self.order_tickets:
+                    self.order_tickets[ticket.order_id] = []
+                self.order_tickets[ticket.order_id].append(ticket.ticket_id)
+                return ticket
+                
+            def get_by_id(self, ticket_id: str):
+                return self.tickets.get(ticket_id)
+                
+            def list_by_order(self, order_id: str):
+                ticket_ids = self.order_tickets.get(order_id, [])
+                return [self.tickets[tid] for tid in ticket_ids if tid in self.tickets]
+        
+        repo = MockTicketRepository()
+        service = UrgentService(repo)
+        
+        # Create a ticket
+        result = service.create_urgent_ticket(
+            order_id="ORD001",
+            reason="测试催单"
+        )
+        
+        # Verify ticket ID format
+        ticket_id = result["ticket_id"]
+        self.assertTrue(ticket_id.startswith("TKT"), f"Ticket ID should start with 'TKT', got {ticket_id}")
+        self.assertGreater(len(ticket_id), 3, f"Ticket ID should have content after 'TKT', got {ticket_id}")
+        # After TKT, should have timestamp (digits) + optional UUID suffix (alphanumeric)
+        suffix = ticket_id[3:]
+        # First part should be digits (timestamp)
+        timestamp_part = ''.join(filter(str.isdigit, suffix))
+        self.assertGreater(len(timestamp_part), 0, f"Ticket ID should have numeric timestamp, got {ticket_id}")
+
+    def test_ticket_repository_idempotence(self):
+        """Creating the same ticket twice should produce different IDs."""
+        from app.repositories.base import TicketRepository
+        from app.models import Ticket, TicketPriority, TicketStatus
+        from datetime import datetime
+        
+        class MockTicketRepository(TicketRepository):
+            def __init__(self):
+                self.tickets = {}
+                self.order_tickets = {}
+                
+            def create(self, ticket: Ticket) -> Ticket:
+                self.tickets[ticket.ticket_id] = ticket
+                if ticket.order_id not in self.order_tickets:
+                    self.order_tickets[ticket.order_id] = []
+                self.order_tickets[ticket.order_id].append(ticket.ticket_id)
+                return ticket
+                
+            def get_by_id(self, ticket_id: str):
+                return self.tickets.get(ticket_id)
+                
+            def list_by_order(self, order_id: str):
+                ticket_ids = self.order_tickets.get(order_id, [])
+                return [self.tickets[tid] for tid in ticket_ids if tid in self.tickets]
+        
+        repo = MockTicketRepository()
+        
+        # Create ticket with same parameters twice
+        from app.services.urgent import UrgentService
+        service = UrgentService(repo)
+        
+        result1 = service.create_urgent_ticket(order_id="ORD001", reason="原因")
+        result2 = service.create_urgent_ticket(order_id="ORD001", reason="原因")
+        
+        # IDs should be different due to timestamp
+        self.assertNotEqual(result1["ticket_id"], result2["ticket_id"], "Same input should produce different ticket IDs")
+
+
+class TestCancelOrderStateMachine(unittest.TestCase):
+    """Property 7: Cancel order state machine
+    
+    Validates: Requirements FR5.2, FR5.3
+    FR5.2: 系统必须校验订单状态
+    FR5.3: 系统必须调用取消 API 并更新订单状态
+    """
+
+    def test_cancel_cancelled_order_fails(self):
+        """Attempting to cancel an already cancelled order should fail."""
+        from app.services.cancel import CancelService
+        from app.repositories.base import OrderRepository
+        from app.models import Order, OrderStatus
+        from datetime import datetime
+        
+        class MockOrderRepository(OrderRepository):
+            def __init__(self):
+                self.orders = {
+                    "ORD003": Order(
+                        order_id="ORD003",
+                        status=OrderStatus.CANCELLED,
+                        amount=99.00,
+                        created_at=datetime.now(),
+                    ),
+                }
+                
+            def get_by_id(self, order_id: str):
+                return self.orders.get(order_id)
+                
+            def update_status(self, order_id: str, status: str):
+                if order_id in self.orders:
+                    try:
+                        self.orders[order_id].status = OrderStatus(status)
+                        return True
+                    except ValueError:
+                        return False
+                return False
+                
+            def cancel(self, order_id: str, reason: str):
+                order = self.orders.get(order_id)
+                if not order:
+                    return {"success": False, "order_id": order_id, "message": "Order not found"}
+                if order.status == OrderStatus.CANCELLED:
+                    return {"success": False, "order_id": order_id, "message": "Order is already cancelled"}
+                return {"success": True, "order_id": order_id}
+        
+        repo = MockOrderRepository()
+        service = CancelService(repo)
+        
+        result = service.cancel_order("ORD003", "用户请求取消")
+        
+        self.assertFalse(result.success, "Cancelling already cancelled order should fail")
+        self.assertIn("already cancelled", result.message.lower())
+
+    def test_cancel_delivered_order_fails(self):
+        """Attempting to cancel a delivered order should fail."""
+        from app.services.cancel import CancelService
+        from app.repositories.base import OrderRepository
+        from app.models import Order, OrderStatus
+        from datetime import datetime
+        
+        class MockOrderRepository(OrderRepository):
+            def __init__(self):
+                self.orders = {
+                    "ORD002": Order(
+                        order_id="ORD002",
+                        status=OrderStatus.DELIVERED,
+                        amount=299.00,
+                        created_at=datetime.now(),
+                    ),
+                }
+                
+            def get_by_id(self, order_id: str):
+                return self.orders.get(order_id)
+                
+            def update_status(self, order_id: str, status: str):
+                if order_id in self.orders:
+                    try:
+                        self.orders[order_id].status = OrderStatus(status)
+                        return True
+                    except ValueError:
+                        return False
+                return False
+                
+            def cancel(self, order_id: str, reason: str):
+                order = self.orders.get(order_id)
+                if not order:
+                    return {"success": False, "order_id": order_id, "message": "Order not found"}
+                if order.status == OrderStatus.DELIVERED:
+                    return {"success": False, "order_id": order_id, "message": "Order is delivered, please use after-sales return process"}
+                return {"success": True, "order_id": order_id}
+        
+        repo = MockOrderRepository()
+        service = CancelService(repo)
+        
+        result = service.cancel_order("ORD002", "用户请求取消")
+        
+        self.assertFalse(result.success, "Cancelling delivered order should fail")
+        self.assertTrue(
+            "delivered" in result.message.lower() or "after-sales" in result.message.lower()
+        )
+
+    def test_cancel_pending_order_succeeds(self):
+        """Cancelling a pending order should succeed."""
+        from app.services.cancel import CancelService
+        from app.repositories.base import OrderRepository
+        from app.models import Order, OrderStatus
+        from datetime import datetime
+        
+        class MockOrderRepository(OrderRepository):
+            def __init__(self):
+                self.orders = {
+                    "ORD004": Order(
+                        order_id="ORD004",
+                        status=OrderStatus.PENDING,
+                        amount=150.00,
+                        created_at=datetime.now(),
+                    ),
+                }
+                
+            def get_by_id(self, order_id: str):
+                return self.orders.get(order_id)
+                
+            def update_status(self, order_id: str, status: str):
+                if order_id in self.orders:
+                    try:
+                        self.orders[order_id].status = OrderStatus(status)
+                        return True
+                    except ValueError:
+                        return False
+                return False
+                
+            def cancel(self, order_id: str, reason: str):
+                order = self.orders.get(order_id)
+                if not order:
+                    return {"success": False, "order_id": order_id, "message": "Order not found"}
+                if order.status == OrderStatus.CANCELLED:
+                    return {"success": False, "order_id": order_id, "message": "Order is already cancelled"}
+                if order.status == OrderStatus.DELIVERED:
+                    return {"success": False, "order_id": order_id, "message": "Order is delivered"}
+                # Process cancellation
+                self.orders[order_id].status = OrderStatus.CANCELLED
+                return {
+                    "success": True,
+                    "order_id": order_id,
+                    "refund_amount": order.amount,
+                    "message": "Order cancelled successfully",
+                }
+        
+        repo = MockOrderRepository()
+        service = CancelService(repo)
+        
+        result = service.cancel_order("ORD004", "用户请求取消")
+        
+        self.assertTrue(result.success, "Cancelling pending order should succeed")
+        self.assertEqual(result.refund_amount, 150.00)
+
+    def test_cancel_processing_order_succeeds(self):
+        """Cancelling a processing order should succeed."""
+        from app.services.cancel import CancelService
+        from app.repositories.base import OrderRepository
+        from app.models import Order, OrderStatus
+        from datetime import datetime
+        
+        class MockOrderRepository(OrderRepository):
+            def __init__(self):
+                self.orders = {
+                    "ORD005": Order(
+                        order_id="ORD005",
+                        status=OrderStatus.PROCESSING,
+                        amount=250.00,
+                        created_at=datetime.now(),
+                    ),
+                }
+                
+            def get_by_id(self, order_id: str):
+                return self.orders.get(order_id)
+                
+            def update_status(self, order_id: str, status: str):
+                if order_id in self.orders:
+                    try:
+                        self.orders[order_id].status = OrderStatus(status)
+                        return True
+                    except ValueError:
+                        return False
+                return False
+                
+            def cancel(self, order_id: str, reason: str):
+                order = self.orders.get(order_id)
+                if not order:
+                    return {"success": False, "order_id": order_id, "message": "Order not found"}
+                if order.status == OrderStatus.CANCELLED:
+                    return {"success": False, "order_id": order_id, "message": "Order is already cancelled"}
+                if order.status == OrderStatus.DELIVERED:
+                    return {"success": False, "order_id": order_id, "message": "Order is delivered"}
+                # Process cancellation
+                self.orders[order_id].status = OrderStatus.CANCELLED
+                return {
+                    "success": True,
+                    "order_id": order_id,
+                    "refund_amount": order.amount,
+                    "message": "Order cancelled successfully",
+                }
+        
+        repo = MockOrderRepository()
+        service = CancelService(repo)
+        
+        result = service.cancel_order("ORD005", "用户请求取消")
+        
+        self.assertTrue(result.success, "Cancelling processing order should succeed")
+        self.assertEqual(result.refund_amount, 250.00)
+
+    def test_cancel_shipped_order_succeeds(self):
+        """Cancelling a shipped order should succeed."""
+        from app.services.cancel import CancelService
+        from app.repositories.base import OrderRepository
+        from app.models import Order, OrderStatus
+        from datetime import datetime
+        
+        class MockOrderRepository(OrderRepository):
+            def __init__(self):
+                self.orders = {
+                    "ORD006": Order(
+                        order_id="ORD006",
+                        status=OrderStatus.SHIPPED,
+                        amount=350.00,
+                        created_at=datetime.now(),
+                    ),
+                }
+                
+            def get_by_id(self, order_id: str):
+                return self.orders.get(order_id)
+                
+            def update_status(self, order_id: str, status: str):
+                if order_id in self.orders:
+                    try:
+                        self.orders[order_id].status = OrderStatus(status)
+                        return True
+                    except ValueError:
+                        return False
+                return False
+                
+            def cancel(self, order_id: str, reason: str):
+                order = self.orders.get(order_id)
+                if not order:
+                    return {"success": False, "order_id": order_id, "message": "Order not found"}
+                if order.status == OrderStatus.CANCELLED:
+                    return {"success": False, "order_id": order_id, "message": "Order is already cancelled"}
+                if order.status == OrderStatus.DELIVERED:
+                    return {"success": False, "order_id": order_id, "message": "Order is delivered"}
+                # Process cancellation
+                self.orders[order_id].status = OrderStatus.CANCELLED
+                return {
+                    "success": True,
+                    "order_id": order_id,
+                    "refund_amount": order.amount,
+                    "message": "Order cancelled successfully",
+                }
+        
+        repo = MockOrderRepository()
+        service = CancelService(repo)
+        
+        result = service.cancel_order("ORD006", "用户请求取消")
+        
+        self.assertTrue(result.success, "Cancelling shipped order should succeed")
+        self.assertEqual(result.refund_amount, 350.00)
 
 
 if __name__ == '__main__':

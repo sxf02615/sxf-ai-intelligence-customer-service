@@ -54,25 +54,31 @@ class TicketStatus(str, Enum):
 
 class Ticket(BaseModel):
     """工单模型"""
-    ticket_id: str = Field(..., description="工单号，格式：TKT+时间戳")
     order_id: str = Field(..., description="关联订单号")
     reason: Optional[str] = Field(None, description="工单原因")
     priority: TicketPriority = Field(..., description="优先级")
     status: TicketStatus = Field(default=TicketStatus.OPEN, description="工单状态")
     created_at: datetime = Field(..., description="创建时间")
     estimated_processing_time: datetime = Field(..., description="预计处理时间")
+    ticket_id: str = Field(default=None, description="工单号，格式：TKT+时间戳")
 
     @field_validator('ticket_id')
     @classmethod
     def ticket_id_must_start_with_tkt(cls, v: str) -> str:
-        """Ticket ID must start with 'TKT' followed by digits."""
+        """Ticket ID must start with 'TKT' followed by alphanumeric characters."""
+        if not v:
+            # Generate ticket_id if not provided
+            import uuid
+            timestamp = int(datetime.now().timestamp() * 1000000)
+            v = f"TKT{timestamp}{uuid.uuid4().hex[:8]}"
         if not v.startswith('TKT'):
             raise ValueError('ticket_id must start with "TKT"')
         if len(v) <= 3:
-            raise ValueError('ticket_id must have a numeric timestamp after "TKT"')
-        numeric_part = v[3:]
-        if not numeric_part.isdigit():
-            raise ValueError('ticket_id timestamp must be numeric')
+            raise ValueError('ticket_id must have content after "TKT"')
+        # After TKT, should only contain alphanumeric characters (no special chars)
+        suffix = v[3:]
+        if not suffix.isalnum():
+            raise ValueError('ticket_id after "TKT" must be alphanumeric only')
         return v
 
 

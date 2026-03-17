@@ -91,7 +91,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Implement refund arrival time calculation
   - _Requirements: FR5.1, FR5.2, FR5.3, FR5.4, FR5.5_
 
-- [ ]* 2.5 Write property tests for core services
+- [x] 2.5 Write property tests for core services
   - **Property 4**: Intent recognition round-trip (parse → print → parse)
   - **Validates: Requirements FR2.1**
   - **Property 5**: Logistics info completeness

@@ -98,8 +98,10 @@ class UrgentService:
         Returns:
             Ticket ID string in format TKT+timestamp.
         """
-        timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
-        return f"TKT{timestamp}"
+        import uuid
+        timestamp = int(time.time() * 1000000)  # microseconds
+        unique_id = uuid.uuid4().hex[:8]  # Add UUID suffix for guaranteed uniqueness
+        return f"TKT{timestamp}{unique_id}"
 
     def _determine_priority(self, reason: Optional[str]) -> TicketPriority:
         """Determine ticket priority based on reason content.
