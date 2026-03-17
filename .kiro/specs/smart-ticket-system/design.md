@@ -252,10 +252,9 @@ class MockOrderRepository(OrderRepository):
 ### 4.1 Java 用户层
 | 组件 | 选择 | 理由 |
 |------|------|------|
-| 框架 | Spring Boot 3.x | 企业级、成熟生态、负载均衡友好 |
-| 通信 | Spring Cloud OpenFeign | 声明式 HTTP 客户端 |
-| 负载均衡 | Spring Cloud LoadBalancer | 客户端负载均衡 |
-| 配置 | Spring Cloud Config | 集中配置管理 |
+| 框架 | Spring Boot 3.x | 企业级、成熟生态、单机部署 |
+| 通信 | RestTemplate / WebClient | HTTP 客户端 |
+| 配置 | Spring Boot Config | 配置文件管理 |
 | 监控 | Spring Actuator | 健康检查、指标监控 |
 
 ### 4.2 Python 核心层
@@ -448,8 +447,6 @@ Response:
 ```java
 // 核心类设计
 @SpringBootApplication
-@EnableFeignClients
-@EnableDiscoveryClient
 public class SmartTicketApplication {
     public static void main(String[] args) {
         SpringApplication.run(SmartTicketApplication.class, args);
@@ -470,40 +467,47 @@ public class ChatController {
     }
 }
 
-// Feign 客户端 - 调用 Python 核心服务
-@FeignClient(name = "ticket-core-service")
-public interface TicketServiceClient {
+// HTTP 客户端 - 调用 Python 核心服务
+@Component
+public class TicketServiceClient {
     
-    @PostMapping("/api/v1/chat")
-    CoreResponse chat(@RequestBody ChatRequest request);
+    @Autowired
+    private RestTemplate restTemplate;
     
-    @GetMapping("/api/v1/logistics/{orderId}")
-    CoreResponse getLogistics(@PathVariable String orderId);
+    @Value("${python-core.url}")
+    private String pythonCoreUrl;
     
-    @PostMapping("/api/v1/tickets/urgent")
-    CoreResponse createUrgentTicket(@RequestBody UrgentRequest request);
+    public CoreResponse chat(ChatRequest request) {
+        return restTemplate.postForObject(pythonCoreUrl + "/api/v1/chat", request, CoreResponse.class);
+    }
     
-    @PostMapping("/api/v1/orders/cancel")
-    CoreResponse cancelOrder(@RequestBody CancelRequest request);
+    public CoreResponse getLogistics(String orderId) {
+        return restTemplate.getForObject(pythonCoreUrl + "/api/v1/logistics/" + orderId, CoreResponse.class);
+    }
+    
+    public CoreResponse createUrgentTicket(UrgentRequest request) {
+        return restTemplate.postForObject(pythonCoreUrl + "/api/v1/tickets/urgent", request, CoreResponse.class);
+    }
+    
+    public CoreResponse cancelOrder(CancelRequest request) {
+        return restTemplate.postForObject(pythonCoreUrl + "/api/v1/orders/cancel", request, CoreResponse.class);
+    }
 }
 ```
 
-### 4.4.2 负载均衡配置
+### 4.4.2 配置文件
 
 ```yaml
 # application.yml
+server:
+  port: 8080
+
+python-core:
+  url: http://localhost:8000
+
 spring:
-  cloud:
-    loadbalancer:
-      ribbon:
-        enabled: false  # 使用 Spring Cloud LoadBalancer
-    nacos:
-      discovery:
-        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
-        
-ticket-core-service:
-  ribbon:
-    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+  application:
+    name: smart-ticket-service
 ```
 
 ## 6. 项目结构
