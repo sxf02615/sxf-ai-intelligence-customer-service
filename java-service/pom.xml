@@ -54,6 +54,13 @@
             <version>12.5</version>
         </dependency>
         
+        <!-- Feign OkHttp Client -->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-okhttp</artifactId>
+            <version>12.5</version>
+        </dependency>
+        
         <!-- Jackson for JSON -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

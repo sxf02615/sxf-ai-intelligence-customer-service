@@ -7,6 +7,7 @@ import com.smartticket.dto.request.UrgentTicketRequest;
 import com.smartticket.dto.response.CancelOrderResponse;
 import com.smartticket.dto.response.LogisticsResponse;
 import com.smartticket.dto.response.UrgentTicketResponse;
+import com.smartticket.feign.TicketServiceClientConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * Feign client for communicating with Python Core Service.
  * NFR7, NFR8 - HTTP communication with Python core service
  */
-@FeignClient(name = "ticketServiceClient", url = "${python-core.url}")
+@FeignClient(name = "ticketServiceClient", url = "${python-core.url}", configuration = TicketServiceClientConfig.class)
 @RequestMapping("/api/v1")
 public interface TicketServiceClient {
     

@@ -369,13 +369,13 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Test session validation
   - _Requirements: FR1.1, FR1.2, FR1.3_
 
-- [-] 10.3 Integration testing - Chat flow
+- [x] 10.3 Integration testing - Chat flow
   - Test message from UI to Java to Python core
   - Test intent recognition routing
   - Test response formatting and display
   - _Requirements: FR2.1, FR2.2, FR2.3, FR2.4, FR2.5_
 
-- [ ] 10.4 Integration testing - Business logic
+- [-] 10.4 Integration testing - Business logic
   - Test logistics query flow end-to-end
   - Test urgent ticket creation flow end-to-end
   - Test cancel order flow end-to-end

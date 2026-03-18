@@ -4,6 +4,7 @@ import com.smartticket.dto.ApiResponse;
 import com.smartticket.dto.ChatRequest;
 import com.smartticket.dto.ChatResponse;
 import com.smartticket.service.ChatService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,7 @@ public class ChatController {
     
     private final ChatService chatService;
     
-    public ChatController(ChatService chatService) {
+    public ChatController(@Lazy ChatService chatService) {
         this.chatService = chatService;
     }
     

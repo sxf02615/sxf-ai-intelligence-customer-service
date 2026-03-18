@@ -11,6 +11,7 @@ import com.smartticket.dto.response.UrgentTicketResponse;
 import com.smartticket.feign.TicketServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,7 +25,7 @@ public class ChatService {
     
     private final TicketServiceClient ticketServiceClient;
     
-    public ChatService(TicketServiceClient ticketServiceClient) {
+    public ChatService(@Lazy TicketServiceClient ticketServiceClient) {
         this.ticketServiceClient = ticketServiceClient;
     }
     
