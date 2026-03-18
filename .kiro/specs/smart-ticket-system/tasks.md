@@ -175,7 +175,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 5. Java Service - Authentication Module
 
-- [ ] 5.1 Implement authentication abstraction
+- [x] 5.1 Implement authentication abstraction
   - Create service/AuthService.java interface
   - Define authenticate(username, password) method
   - Define getUserByToken(token) method
@@ -183,21 +183,21 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Define logout(token) method
   - _Requirements: FR1.5, FR1.6_
 
-- [ ] 5.2 Implement configuration-based authentication
+- [x] 5.2 Implement configuration-based authentication
   - Create repository/AuthRepository.java abstract interface
   - Create repository/ConfigAuthRepository.java for file-based auth
   - Implement user validation against configuration
   - Support multiple users (admin, user roles)
   - _Requirements: FR1.1, FR1.2, FR1.4, FR1.6_
 
-- [ ] 5.3 Implement AuthService implementation
+- [x] 5.3 Implement AuthService implementation
   - Create service/impl/AuthServiceImpl.java
   - Integrate AuthRepository for user lookup
   - Implement token generation (simple JWT or UUID)
   - Implement token validation logic
   - _Requirements: FR1.3, FR1.5_
 
-- [ ] 5.4 Create authentication controller
+- [x] 5.4 Create authentication controller
   - Create controller/AuthController.java
   - POST /api/v1/auth/login endpoint
   - Validate login credentials
@@ -205,7 +205,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Return error message on failure
   - _Requirements: FR1.1, FR1.2, FR1.3_
 
-- [ ]* 5.5 Write unit tests for authentication
+- [x] 5.5 Write unit tests for authentication
   - Test successful login with valid credentials
   - Test failed login with invalid credentials
   - Test token validation
@@ -214,7 +214,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 6. Java Service - Chat and Integration
 
-- [ ] 6.1 Implement Python core service client
+- [x] 6.1 Implement Python core service client
   - Create feign/TicketServiceClient.java (Feign client)
   - Configure base URL from configuration
   - Implement chat() method (POST /api/v1/chat)
@@ -223,33 +223,33 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Implement cancelOrder(request) method (POST /api/v1/orders/cancel)
   - _Requirements: NFR7, NFR8_
 
-- [ ] 6.2 Implement chat service
+- [x] 6.2 Implement chat service
   - Create service/ChatService.java
   - Integrate TicketServiceClient for Python core calls
   - Handle response mapping
   - Implement error handling
   - _Requirements: NFR7, NFR8_
 
-- [ ] 6.3 Create chat controller
+- [x] 6.3 Create chat controller
   - Create controller/ChatController.java
   - POST /api/v1/chat endpoint
   - Validate request (session_id, user_id, message)
   - Call ChatService and return response
   - _Requirements: NFR7_
 
-- [ ] 6.4 Create health check controller
+- [x] 6.4 Create health check controller
   - Create controller/HealthController.java
   - GET /health endpoint
   - Return service status
   - _Requirements: NFR2_
 
-- [ ] 6.5 Configure Spring Boot application
+- [x] 6.5 Configure Spring Boot application
   - Create SmartTicketApplication.java main class
   - Create config/WebConfig.java for web configuration
   - Create config/FeignConfig.java for Feign client
   - _Requirements: NFR2_
 
-- [ ]* 6.6 Write integration tests for Java service
+- [x] 6.6 Write integration tests for Java service
   - Test authentication flow end-to-end
   - Test chat routing to Python core
   - Test error handling and response mapping
@@ -257,7 +257,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 7. Python UI - Project Setup
 
-- [ ] 7.1 Create Python UI project structure
+- [-] 7.1 Create Python UI project structure
   - Create python-ui directory
   - Set up app/ directory structure (api/, templates/, static/, services/)
   - Create requirements.txt with dependencies (fastapi, httpx, jinja2)

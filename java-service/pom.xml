@@ -44,6 +44,14 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+        
+        <!-- Feign Jackson for JSON encoding/decoding -->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-jackson</artifactId>
+            <version>12.5</version>
         </dependency>
         
         <!-- Jackson for JSON -->
