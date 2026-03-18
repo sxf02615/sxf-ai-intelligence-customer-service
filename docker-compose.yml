@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Python Core Business Layer - FastAPI service
+  python-core:
+    build:
+      context: ./python-core
+      dockerfile: Dockerfile
+    container_name: smart-ticket-core
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - CORS_ALLOW_ORIGINS=["*"]
+      - CORS_ALLOW_CREDENTIALS=true
+      - CORS_ALLOW_METHODS=["*"]
+      - CORS_ALLOW_HEADERS=["*"]
+    networks:
+      - smart-ticket-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Java User Layer - Spring Boot service
+  java-service:
+    build:
+      context: ./java-service
+      dockerfile: Dockerfile
+    container_name: smart-ticket-java
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - PYTHON_CORE_URL=http://python-core:8000
+      - SPRING_PROFILES_ACTIVE=dev
+    networks:
+      - smart-ticket-network
+    depends_on:
+      python-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # Python UI Layer - FastAPI service
+  python-ui:
+    build:
+      context: ./python-ui
+      dockerfile: Dockerfile
+    container_name: smart-ticket-ui
+    ports:
+      - "8001:8001"
+    environment:
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8001
+      - JAVA_SERVICE_URL=http://java-service:8080
+      - CORS_ALLOW_ORIGINS=["*"]
+      - CORS_ALLOW_CREDENTIALS=true
+      - CORS_ALLOW_METHODS=["*"]
+      - CORS_ALLOW_HEADERS=["*"]
+    networks:
+      - smart-ticket-network
+    depends_on:
+      java-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  smart-ticket-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

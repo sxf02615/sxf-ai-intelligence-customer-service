@@ -332,7 +332,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Render chat.html template
   - _Requirements: FR1.5_
 
-- [ ] 9.4 Implement chat JavaScript functionality
+- [x] 9.4 Implement chat JavaScript functionality
   - Create static/js/app.js
   - Implement message sending via WebSocket or polling
   - Implement message display and formatting
@@ -340,7 +340,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Implement loading states
   - _Requirements: FR2.1, FR2.2, FR2.3, FR2.4_
 
-- [ ] 9.5 Implement logout functionality
+- [x] 9.5 Implement logout functionality
   - POST /api/auth/logout endpoint
   - Clear session/token
   - Redirect to login page
@@ -355,7 +355,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 10. Integration and Testing
 
-- [ ] 10.1 Create Docker Compose configuration
+- [x] 10.1 Create Docker Compose configuration
   - Create docker-compose.yml
   - Define python-core service (port 8000)
   - Define java-service service (port 8080)
@@ -363,13 +363,13 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Configure network between services
   - _Requirements: NFR7, NFR8_
 
-- [ ] 10.2 Integration testing - Authentication flow
+- [x] 10.2 Integration testing - Authentication flow
   - Test login from UI to Java auth service
   - Test token propagation to Python core
   - Test session validation
   - _Requirements: FR1.1, FR1.2, FR1.3_
 
-- [ ] 10.3 Integration testing - Chat flow
+- [-] 10.3 Integration testing - Chat flow
   - Test message from UI to Java to Python core
   - Test intent recognition routing
   - Test response formatting and display
