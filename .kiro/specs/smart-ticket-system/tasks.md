@@ -302,7 +302,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Implement error handling and retry logic
   - _Requirements: NFR7_
 
-- [-] 8.5 Write unit tests for login functionality
+- [x] 8.5 Write unit tests for login functionality
   - Test login page rendering
   - Test successful authentication flow
   - Test failed authentication handling

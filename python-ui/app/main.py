@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
+from app.config import settings, get_static_paths, get_session_config
 from app.api import auth, chat
 
 

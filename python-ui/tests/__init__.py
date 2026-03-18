@@ -1,0 +1,1 @@
+"""Tests package for Smart Ticket System Python UI."""
