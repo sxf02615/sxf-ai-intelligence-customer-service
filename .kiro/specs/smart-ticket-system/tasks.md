@@ -257,14 +257,14 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 7. Python UI - Project Setup
 
-- [-] 7.1 Create Python UI project structure
+- [x] 7.1 Create Python UI project structure
   - Create python-ui directory
   - Set up app/ directory structure (api/, templates/, static/, services/)
   - Create requirements.txt with dependencies (fastapi, httpx, jinja2)
   - Create .env.example for configuration
   - _Requirements: NFR1_
 
-- [ ] 7.2 Configure UI settings
+- [x] 7.2 Configure UI settings
   - Create app/config.py
   - Configure Java service URL
   - Configure session settings
@@ -273,7 +273,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 8. Python UI - Login Page Implementation
 
-- [ ] 8.1 Create login HTML template
+- [x] 8.1 Create login HTML template
   - Create templates/login.html
   - Design login form (username, password fields)
   - Add submit button
@@ -281,7 +281,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Style with CSS for clean, user-friendly appearance
   - _Requirements: FR1.1_
 
-- [ ] 8.2 Implement login API endpoint
+- [x] 8.2 Implement login API endpoint
   - Create app/api/auth.py
   - POST /api/auth/login endpoint
   - Call Java authentication service
@@ -289,20 +289,20 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Set session/token on successful login
   - _Requirements: FR1.1, FR1.2, FR1.3_
 
-- [ ] 8.3 Implement login page route
+- [x] 8.3 Implement login page route
   - GET /login endpoint
   - Render login.html template
   - Handle already logged-in users (redirect to chat)
   - _Requirements: FR1.1_
 
-- [ ] 8.4 Create HTTP client for Java service
+- [x] 8.4 Create HTTP client for Java service
   - Create services/http_client.py
   - Implement async HTTP client using httpx
   - Handle authentication token in requests
   - Implement error handling and retry logic
   - _Requirements: NFR7_
 
-- [ ]* 8.5 Write unit tests for login functionality
+- [-] 8.5 Write unit tests for login functionality
   - Test login page rendering
   - Test successful authentication flow
   - Test failed authentication handling
@@ -311,7 +311,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 9. Python UI - Chat Page Implementation
 
-- [ ] 9.1 Create chat HTML template
+- [x] 9.1 Create chat HTML template
   - Create templates/chat.html
   - Design chat interface (message display area, input field, send button)
   - Add loading indicator
