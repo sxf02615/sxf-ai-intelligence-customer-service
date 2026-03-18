@@ -844,5 +844,313 @@ class TestCancelOrderStateMachine(unittest.TestCase):
         self.assertEqual(result.refund_amount, 350.00)
 
 
+class TestApiResponseFormatConsistency(unittest.TestCase):
+    """Property 8: API response format consistency.
+    
+    Validates: Requirements NFR1
+    NFR1: UI 层必须使用 Python FastAPI + HTML
+    
+    This property ensures all API responses follow a consistent format:
+    - success: boolean indicating if the operation was successful
+    - data: dict containing response data on success
+    - error: string containing error code on failure
+    - message: string containing human-readable message
+    """
+    
+    def setUp(self):
+        """Set up test client."""
+        from app.main import app
+        from app.api.routes import router
+        from fastapi.testclient import TestClient
+        
+        app.include_router(router, prefix="/api/v1")
+        self.client = TestClient(app)
+    
+    def _generate_valid_order_id(self):
+        """Generate a valid order ID for testing."""
+        import random
+        return f"ORD{random.randint(1, 999999)}"
+    
+    def _generate_invalid_order_id(self):
+        """Generate various invalid order ID formats."""
+        import random
+        invalid_formats = [
+            "",  # Empty
+            "ORD",  # No number
+            "ord001",  # Lowercase
+            "ORD001abc",  # Extra characters
+            "ORD001!",  # Special character
+            "001",  # No prefix
+            "order001",  # Wrong prefix
+            "ORD-001",  # Hyphen instead of number
+            "ORD_001",  # Underscore
+            "  ORD001",  # Leading space
+            "ORD001  ",  # Trailing space
+            "ORD",  # Just prefix
+            f"ORD{random.randint(1000, 9999)}abc",  # Mixed
+        ]
+        return random.choice(invalid_formats)
+    
+    def test_logistics_response_format_consistency(self):
+        """All logistics responses must follow consistent format."""
+        import re
+        import random
+        
+        # Test with valid order IDs
+        valid_order_ids = [f"ORD{i:03d}" for i in range(1, 100)]
+        
+        for order_id in valid_order_ids:
+            with self.subTest(order_id=order_id):
+                response = self.client.get(f"/api/v1/logistics/{order_id}")
+                data = response.json()
+                
+                # Verify response has required fields
+                self.assertIn("success", data, f"Response missing 'success' field for {order_id}")
+                self.assertIsInstance(data["success"], bool, f"'success' must be boolean for {order_id}")
+                
+                if data["success"]:
+                    self.assertIn("data", data, f"Success response must have 'data' field for {order_id}")
+                    self.assertIsInstance(data["data"], dict, f"'data' must be dict for {order_id}")
+                else:
+                    self.assertIn("error", data, f"Error response must have 'error' field for {order_id}")
+                    self.assertIn("message", data, f"Error response must have 'message' field for {order_id}")
+    
+    def test_urgent_ticket_response_format_consistency(self):
+        """All urgent ticket responses must follow consistent format."""
+        import random
+        
+        # Test with various order IDs
+        order_ids = [f"ORD{i:03d}" for i in range(1, 50)]
+        
+        for order_id in order_ids:
+            with self.subTest(order_id=order_id):
+                response = self.client.post(
+                    "/api/v1/tickets/urgent",
+                    json={"order_id": order_id}
+                )
+                data = response.json()
+                
+                # Verify response has required fields
+                self.assertIn("success", data, f"Response missing 'success' field for {order_id}")
+                self.assertIsInstance(data["success"], bool, f"'success' must be boolean for {order_id}")
+                
+                if data["success"]:
+                    self.assertIn("data", data, f"Success response must have 'data' field for {order_id}")
+                    self.assertIsInstance(data["data"], dict, f"'data' must be dict for {order_id}")
+                    # Verify data contains expected fields
+                    self.assertIn("ticket_id", data["data"], f"Data must contain 'ticket_id' for {order_id}")
+                    self.assertIn("estimated_processing_time", data["data"], f"Data must contain 'estimated_processing_time' for {order_id}")
+                    self.assertIn("contact", data["data"], f"Data must contain 'contact' for {order_id}")
+                else:
+                    self.assertIn("error", data, f"Error response must have 'error' field for {order_id}")
+    
+    def test_cancel_order_response_format_consistency(self):
+        """All cancel order responses must follow consistent format."""
+        import random
+        
+        # Test with various order IDs
+        order_ids = [f"ORD{i:03d}" for i in range(1, 50)]
+        
+        for order_id in order_ids:
+            with self.subTest(order_id=order_id):
+                response = self.client.post(
+                    "/api/v1/orders/cancel",
+                    json={"order_id": order_id, "reason": "测试取消"}
+                )
+                data = response.json()
+                
+                # Verify response has required fields
+                self.assertIn("success", data, f"Response missing 'success' field for {order_id}")
+                self.assertIsInstance(data["success"], bool, f"'success' must be boolean for {order_id}")
+                
+                # Cancel order endpoint always returns data with message
+                self.assertIn("data", data, f"Response must have 'data' field for {order_id}")
+                self.assertIsInstance(data["data"], dict, f"'data' must be dict for {order_id}")
+                self.assertIn("order_id", data["data"], f"Data must contain 'order_id' for {order_id}")
+                self.assertIn("refund_amount", data["data"], f"Data must contain 'refund_amount' for {order_id}")
+                self.assertIn("message", data["data"], f"Data must contain 'message' for {order_id}")
+    
+    def test_chat_response_format_consistency(self):
+        """All chat responses must follow consistent format."""
+        import random
+        
+        # Test with various messages
+        messages = [
+            "查询物流",
+            "催单",
+            "取消订单",
+            "我的订单到哪了",
+            "帮我看看ORD001",
+        ]
+        
+        for message in messages:
+            with self.subTest(message=message):
+                response = self.client.post(
+                    "/api/v1/chat",
+                    json={
+                        "session_id": f"sess_{random.randint(1, 1000)}",
+                        "user_id": f"user_{random.randint(1, 100)}",
+                        "message": message
+                    }
+                )
+                data = response.json()
+                
+                # Verify response has required fields
+                self.assertIn("success", data, f"Response missing 'success' field for message: {message}")
+                self.assertIsInstance(data["success"], bool, f"'success' must be boolean for {message}")
+                self.assertIn("response", data, f"Response missing 'response' field for {message}")
+                self.assertIn("intent", data, f"Response missing 'intent' field for {message}")
+                self.assertIn("session_id", data, f"Response missing 'session_id' field for {message}")
+
+
+class TestOrderIdFormatValidation(unittest.TestCase):
+    """Property 9: Order ID format validation.
+    
+    Validates: Requirements FR2.3
+    FR2.3: 系统必须提取订单号实体（格式：ORD+数字）
+    
+    This property ensures order ID format validation works correctly:
+    - Valid format: ORD followed by digits (e.g., ORD001, ORD12345)
+    - Invalid formats are rejected with appropriate error messages
+    """
+    
+    def setUp(self):
+        """Set up test client."""
+        from app.main import app
+        from app.api.routes import router
+        from fastapi.testclient import TestClient
+        
+        app.include_router(router, prefix="/api/v1")
+        self.client = TestClient(app)
+    
+    def test_valid_order_id_formats_accepted(self):
+        """All valid order ID formats (ORD+digits) should be accepted."""
+        import random
+        
+        # Generate valid order IDs
+        valid_order_ids = []
+        for i in range(1, 1000):
+            valid_order_ids.append(f"ORD{i:03d}")
+        
+        for order_id in valid_order_ids:
+            with self.subTest(order_id=order_id):
+                response = self.client.get(f"/api/v1/logistics/{order_id}")
+                data = response.json()
+                
+                # Should not get format error
+                self.assertNotEqual(
+                    data.get("error"), 
+                    "Invalid order ID format",
+                    f"Valid order ID {order_id} was rejected"
+                )
+    
+    def test_invalid_order_id_formats_rejected(self):
+        """All invalid order ID formats should be rejected with format error."""
+        import random
+        
+        # Generate invalid order IDs (excluding non-printable characters that can't be tested via HTTP)
+        invalid_order_ids = [
+            "ORD",  # No number
+            "ord001",  # Lowercase
+            "ORD001abc",  # Extra characters
+            "ORD001!",  # Special character
+            "001",  # No prefix
+            "order001",  # Wrong prefix
+            "ORD-001",  # Hyphen
+            "ORD_001",  # Underscore
+            "  ORD001",  # Leading space
+            "ORD001  ",  # Trailing space
+            "OR-D001",  # Hyphen in middle
+            "ORD 001",  # Space in middle
+        ]
+        
+        for order_id in invalid_order_ids:
+            with self.subTest(order_id=order_id):
+                response = self.client.get(f"/api/v1/logistics/{order_id}")
+                data = response.json()
+                
+                # Should get format error
+                self.assertEqual(
+                    data.get("error"),
+                    "Invalid order ID format",
+                    f"Invalid order ID '{order_id}' should be rejected with format error"
+                )
+                self.assertIn("订单号格式不正确", data.get("message", ""))
+    
+    def test_order_id_regex_pattern_compliance(self):
+        """Order IDs must match the regex pattern ^ORD\\d+$."""
+        import re
+        
+        # Define the expected pattern
+        pattern = re.compile(r'^ORD\d+$')
+        
+        # Test cases
+        test_cases = [
+            # (order_id, should_match)
+            ("ORD001", True),
+            ("ORD12345", True),
+            ("ORD999999", True),
+            ("ord001", False),
+            ("ORD001abc", False),
+            ("ORD", False),
+            ("001", False),
+            ("ORD-001", False),
+            ("ORD_001", False),
+            ("  ORD001", False),
+            ("ORD001  ", False),
+        ]
+        
+        for order_id, should_match in test_cases:
+            with self.subTest(order_id=order_id):
+                matches = bool(pattern.match(order_id))
+                self.assertEqual(
+                    matches, 
+                    should_match,
+                    f"Order ID '{order_id}' regex match mismatch: expected {should_match}, got {matches}"
+                )
+    
+    def test_order_id_extraction_from_various_inputs(self):
+        """Order ID extraction should work with various input formats."""
+        import random
+        import re
+        
+        # Test inputs with order IDs embedded
+        test_inputs = [
+            "我的订单ORD001到哪了",
+            "查询ORD123物流信息",
+            "ORD456什么时候送达",
+            "帮我看看ORD789",
+            "ORD001的状态",
+            "ORD999999的物流",
+        ]
+        
+        # Expected pattern for extraction
+        extract_pattern = re.compile(r'ORD\d+')
+        
+        for message in test_inputs:
+            with self.subTest(message=message):
+                # Extract order ID from message
+                match = extract_pattern.search(message)
+                if match:
+                    extracted_id = match.group()
+                    
+                    # Verify extracted ID is valid
+                    self.assertTrue(
+                        bool(re.match(r'^ORD\d+$', extracted_id)),
+                        f"Extracted order ID '{extracted_id}' from '{message}' is not valid"
+                    )
+                    
+                    # Verify the API accepts this order ID
+                    response = self.client.get(f"/api/v1/logistics/{extracted_id}")
+                    data = response.json()
+                    
+                    # Should not get format error (might get order not found)
+                    self.assertNotEqual(
+                        data.get("error"),
+                        "Invalid order ID format",
+                        f"Extracted order ID '{extracted_id}' was rejected by API"
+                    )
+
+
 if __name__ == '__main__':
     unittest.main()

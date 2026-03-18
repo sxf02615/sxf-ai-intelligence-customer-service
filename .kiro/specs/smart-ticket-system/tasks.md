@@ -137,14 +137,14 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Return cancel result with refund information
   - _Requirements: FR5.1, FR5.2, FR5.3, FR5.4, FR5.5_
 
-- [ ] 3.6 Create main application entry point
+- [x] 3.6 Create main application entry point
   - Create app/main.py
   - Import and include API routes
   - Add health check endpoint
   - Configure startup events
   - _Requirements: NFR1, NFR3_
 
-- [ ]* 3.7 Write property tests for API endpoints
+- [x] 3.7 Write property tests for API endpoints
   - **Property 8**: API response format consistency
   - **Validates: Requirements NFR1**
   - **Property 9**: Order ID format validation
@@ -152,14 +152,14 @@ The implementation follows a bottom-up approach, starting with the data layer an
 
 ### 4. Java Service - Project Setup and Configuration
 
-- [ ] 4.1 Create Java project structure
+- [x] 4.1 Create Java project structure
   - Create java-service directory with Maven structure
   - Set up pom.xml with Spring Boot 3.x dependencies
   - Create src/main/java/com/smartticket/ package structure
   - Create src/main/resources/ directory
   - _Requirements: NFR2_
 
-- [ ] 4.2 Configure application settings
+- [-] 4.2 Configure application settings
   - Create application.yml with server port configuration
   - Configure Python core service URL
   - Set up application-dev.yml for development profile

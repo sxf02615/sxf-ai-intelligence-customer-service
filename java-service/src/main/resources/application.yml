@@ -1,0 +1,32 @@
+# Smart Ticket Service Configuration
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smart-ticket-service
+  
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSSZ
+
+# Python Core Service Configuration
+python-core:
+  url: http://localhost:8000
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# Logging Configuration
+logging:
+  level:
+    com.smartticket: DEBUG
+    org.springframework.web: INFO
