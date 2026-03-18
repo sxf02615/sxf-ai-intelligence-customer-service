@@ -101,6 +101,37 @@ def create_app() -> FastAPI:
         # Render login page
         return templates.TemplateResponse("login.html", {"request": request})
     
+    @app.get("/chat", response_class=HTMLResponse)
+    async def chat_page(request: Request):
+        """
+        Render chat page.
+        
+        GET /chat
+        
+        If user is not authenticated (no valid session cookie),
+        redirects to login page.
+        
+        Requirements: FR1.5
+        
+        Args:
+            request: Request object for checking session cookies
+            
+        Returns:
+            HTMLResponse: Chat page template or redirect to login
+        """
+        # Check if user is authenticated
+        session_config = get_session_config()
+        cookie_name = session_config["cookie_name"]
+        
+        token = request.cookies.get(cookie_name)
+        
+        if not token:
+            # User is not logged in, redirect to login
+            return RedirectResponse(url="/login")
+        
+        # Render chat page
+        return templates.TemplateResponse("chat.html", {"request": request})
+    
     @app.get("/health")
     async def health_check() -> dict:
         """

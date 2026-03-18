@@ -319,14 +319,14 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Style with CSS for comfortable chat experience
   - _Requirements: FR2.1, FR2.2, FR2.3, FR2.4_
 
-- [ ] 9.2 Implement chat API endpoint
+- [x] 9.2 Implement chat API endpoint
   - Create app/api/chat.py
   - POST /api/chat endpoint
   - Call Java chat service
   - Return response with intent information
   - _Requirements: NFR7_
 
-- [ ] 9.3 Implement chat page route
+- [x] 9.3 Implement chat page route
   - GET /chat endpoint
   - Check authentication (redirect to login if not authenticated)
   - Render chat.html template
