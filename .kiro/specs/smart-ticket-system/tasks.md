@@ -159,13 +159,13 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Create src/main/resources/ directory
   - _Requirements: NFR2_
 
-- [-] 4.2 Configure application settings
+- [x] 4.2 Configure application settings
   - Create application.yml with server port configuration
   - Configure Python core service URL
   - Set up application-dev.yml for development profile
   - _Requirements: NFR2, NFR8_
 
-- [ ] 4.3 Create DTO classes
+- [x] 4.3 Create DTO classes
   - Create dto/LoginRequest.java (username, password)
   - Create dto/LoginResponse.java (success, token, user_id, expires_in)
   - Create dto/ChatRequest.java (session_id, user_id, message, context)
