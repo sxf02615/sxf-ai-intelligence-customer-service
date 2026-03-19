@@ -244,3 +244,41 @@ async def get_session(request: Request) -> dict:
         return {
             "authenticated": False
         }
+
+
+@router.get("/me")
+async def get_current_user(request: Request) -> dict:
+    """
+    Get current user information (compatible with frontend).
+    
+    GET /api/auth/me
+    
+    Args:
+        request: Request object for accessing cookies
+        
+    Returns:
+        dict with user information
+    """
+    session_config = get_session_config()
+    cookie_name = session_config["cookie_name"]
+    
+    token = request.cookies.get(cookie_name)
+    
+    if token:
+        # 这里可以添加从token解析用户信息的逻辑
+        # 目前返回一个模拟的用户ID
+        return {
+            "success": True,
+            "data": {
+                "user_id": "user",  # 模拟用户ID
+                "authenticated": True
+            }
+        }
+    else:
+        return {
+            "success": False,
+            "message": "未登录",
+            "data": {
+                "authenticated": False
+            }
+        }
