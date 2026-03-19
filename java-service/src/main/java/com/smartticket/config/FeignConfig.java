@@ -14,8 +14,8 @@ import feign.jackson.JacksonEncoder;
 import feign.okhttp.OkHttpClient;
 
 /**
- * Feign client configuration for the Smart Ticket Service.
- * Configures the HTTP client to communicate with the Python Core service.
+ * 智能工单服务的Feign客户端配置。
+ * 配置HTTP客户端以与Python核心服务通信。
  */
 @Configuration
 public class FeignConfig {
@@ -25,7 +25,7 @@ public class FeignConfig {
 
     @Bean
     public Client feignClient() {
-        // Use OkHttpClient which is more robust and handles connection failures better
+        // 使用OkHttpClient，它更健壮，能更好地处理连接失败
         return new OkHttpClient();
     }
 
@@ -46,13 +46,13 @@ public class FeignConfig {
 
     @Bean
     public Request.Options requestOptions() {
-        // Configure timeout options to prevent hanging on startup
-        return new Request.Options(5000, 10000); // 5s connect timeout, 10s read timeout
+        // 配置超时选项以防止启动时挂起
+        return new Request.Options(5000, 10000); // 5秒连接超时，10秒读取超时
     }
 
     @Bean
     public Retryer retryer() {
-        // Configure retry policy
+        // 配置重试策略
         return new Retryer.Default(100, 1000, 3);
     }
 }

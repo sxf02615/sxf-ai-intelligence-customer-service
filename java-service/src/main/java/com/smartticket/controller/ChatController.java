@@ -32,28 +32,28 @@ public class ChatController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<ChatResponse>> chat(@RequestBody ChatRequest chatRequest) {
-        // Validate request
+        // 验证请求
         if (chatRequest == null) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Chat request is required", "CHAT_001"));
+                    .body(ApiResponse.error("聊天请求不能为空", "CHAT_001"));
         }
         
         if (chatRequest.getSessionId() == null || chatRequest.getSessionId().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Session ID is required", "CHAT_002"));
+                    .body(ApiResponse.error("会话ID不能为空", "CHAT_002"));
         }
         
         if (chatRequest.getUserId() == null || chatRequest.getUserId().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("User ID is required", "CHAT_003"));
+                    .body(ApiResponse.error("用户ID不能为空", "CHAT_003"));
         }
         
         if (chatRequest.getMessage() == null || chatRequest.getMessage().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Message is required", "CHAT_004"));
+                    .body(ApiResponse.error("消息内容不能为空", "CHAT_004"));
         }
         
-        // Process chat message
+        // 处理聊天消息
         ApiResponse<ChatResponse> response = chatService.processChat(chatRequest);
         
         if (response.isSuccess()) {

@@ -19,14 +19,14 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
 class ChatRequest(BaseModel):
-    """Chat request model from UI."""
+    """聊天请求模型（来自UI）。"""
     message: str
     session_id: Optional[str] = None
     context: Optional[dict] = None
 
 
 class ChatResponse(BaseModel):
-    """Chat response model for UI."""
+    """聊天响应模型（用于UI）。"""
     success: bool
     response: str
     intent: Optional[str] = None
@@ -36,7 +36,7 @@ class ChatResponse(BaseModel):
 
 
 class JavaChatRequest(BaseModel):
-    """Request model for Java chat service."""
+    """Java聊天服务的请求模型。"""
     session_id: str
     user_id: str
     message: str
@@ -44,7 +44,7 @@ class JavaChatRequest(BaseModel):
 
 
 class JavaChatResponse(BaseModel):
-    """Response model from Java chat service."""
+    """Java聊天服务的响应模型。"""
     success: bool
     response: str
     intent: Optional[str] = None
@@ -56,7 +56,7 @@ class JavaChatResponse(BaseModel):
 
 
 def get_java_chat_url() -> str:
-    """Get the Java chat service URL."""
+    """获取Java聊天服务URL。"""
     return f"{get_java_service_url()}/api/v1/chat"
 
 
@@ -73,12 +73,12 @@ def get_user_id_from_session(request: Request) -> Optional[str]:
     session_config = get_session_config()
     cookie_name = session_config["cookie_name"]
     
-    # For now, return a default user ID since we're using token-based auth
-    # In a full implementation, we would decode the token to get user_id
+    # 目前，由于使用基于token的认证，我们返回默认用户ID
+    # 在完整实现中，我们会解码token来获取user_id
     token = request.cookies.get(cookie_name)
     if token:
-        # Extract user_id from token or use a default
-        # For simplicity, we'll use a placeholder
+        # 从token中提取user_id或使用默认值
+        # 为简单起见，我们使用占位符
         return "user_001"
     return None
 
@@ -150,7 +150,7 @@ async def chat(
         
     Requirements: NFR7
     """
-    # Validate input
+    # 验证输入
     if not request.message or request.message.strip() == "":
         return ChatResponse(
             success=False,
@@ -158,7 +158,7 @@ async def chat(
             message="消息内容不能为空"
         )
     
-    # Get session info
+    # 获取会话信息
     session_config = get_session_config()
     cookie_name = session_config["cookie_name"]
     session_id = http_request.cookies.get(cookie_name)
@@ -170,7 +170,7 @@ async def chat(
             message="未找到有效的会话，请重新登录"
         )
     
-    # Get user ID from session
+    # 从会话中获取用户ID
     user_id = get_user_id_from_session(http_request)
     if not user_id:
         return ChatResponse(
@@ -179,7 +179,7 @@ async def chat(
             message="无法获取用户信息，请重新登录"
         )
     
-    # Call Java chat service
+    # 调用Java聊天服务
     try:
         java_response = await call_java_chat_service(
             session_id=session_id,
@@ -190,7 +190,7 @@ async def chat(
     except HTTPException:
         raise
     
-    # Handle Java service response
+    # 处理Java服务响应
     if java_response.get("success"):
         data = java_response.get("data", {})
         
@@ -202,7 +202,7 @@ async def chat(
             needs_clarification=data.get("needsClarification", False)
         )
     else:
-        # Chat processing failed
+        # 聊天处理失败
         error_message = java_response.get("message", "处理消息时发生错误")
         
         return ChatResponse(

@@ -22,10 +22,10 @@ from app.repositories.base import (
 
 
 class MockOrderRepository(OrderRepository):
-    """Mock implementation of OrderRepository with test data."""
+    """OrderRepository的模拟实现，包含测试数据。"""
 
     def __init__(self):
-        # Test data: ORD001-shipped, ORD002-delivered, ORD003-cancelled
+        # 测试数据：ORD001-已发货，ORD002-已送达，ORD003-已取消
         self.orders: Dict[str, Order] = {
             "ORD001": Order(
                 order_id="ORD001",
@@ -48,11 +48,11 @@ class MockOrderRepository(OrderRepository):
         }
 
     def get_by_id(self, order_id: str) -> Optional[Order]:
-        """Get order by order_id."""
+        """根据order_id获取订单。"""
         return self.orders.get(order_id)
 
     def update_status(self, order_id: str, status: str) -> bool:
-        """Update order status."""
+        """更新订单状态。"""
         if order_id in self.orders:
             try:
                 self.orders[order_id].status = OrderStatus(status)
@@ -62,7 +62,7 @@ class MockOrderRepository(OrderRepository):
         return False
 
     def cancel(self, order_id: str, reason: str) -> dict:
-        """Cancel an order and return cancel result."""
+        """取消订单并返回取消结果。"""
         order = self.orders.get(order_id)
         if not order:
             return {
@@ -85,7 +85,7 @@ class MockOrderRepository(OrderRepository):
                 "message": "Order is delivered, please use after-sales return process",
             }
 
-        # Process cancellation
+        # 处理取消
         self.orders[order_id].status = OrderStatus.CANCELLED
         refund_amount = order.amount
         refund_arrival_time = datetime.now() + timedelta(days=3)
@@ -100,10 +100,10 @@ class MockOrderRepository(OrderRepository):
 
 
 class MockLogisticsRepository(LogisticsRepository):
-    """Mock implementation of LogisticsRepository with tracking events."""
+    """LogisticsRepository的模拟实现，包含物流轨迹事件。"""
 
     def __init__(self):
-        # Tracking events for shipped orders
+        # 已发货订单的物流轨迹事件
         self.tracking_data: Dict[str, List[TrackingEvent]] = {
             "ORD001": [
                 TrackingEvent(
@@ -135,30 +135,30 @@ class MockLogisticsRepository(LogisticsRepository):
                 ),
             ],
         }
-        # Estimated delivery times
+        # 预计送达时间
         self.estimated_delivery: Dict[str, datetime] = {
             "ORD001": datetime.now() + timedelta(days=1),
         }
 
     def get_tracking(self, order_id: str) -> List[TrackingEvent]:
-        """Get tracking events for an order (max 3 recent)."""
+        """获取订单的物流轨迹事件（最多3条最近）。"""
         events = self.tracking_data.get(order_id, [])
         return sorted(events, key=lambda x: x.timestamp, reverse=True)[:3]
 
     def get_estimated_delivery(self, order_id: str) -> Optional[datetime]:
-        """Get estimated delivery time for an order."""
+        """获取订单的预计送达时间。"""
         return self.estimated_delivery.get(order_id)
 
 
 class MockTicketRepository(TicketRepository):
-    """Mock implementation of TicketRepository for ticket storage."""
+    """TicketRepository的模拟实现，用于工单存储。"""
 
     def __init__(self):
         self.tickets: Dict[str, Ticket] = {}
         self.order_tickets: Dict[str, List[str]] = {}
 
     def create(self, ticket: Ticket) -> Ticket:
-        """Create a new ticket."""
+        """创建新工单。"""
         self.tickets[ticket.ticket_id] = ticket
         if ticket.order_id not in self.order_tickets:
             self.order_tickets[ticket.order_id] = []
@@ -166,10 +166,10 @@ class MockTicketRepository(TicketRepository):
         return ticket
 
     def get_by_id(self, ticket_id: str) -> Optional[Ticket]:
-        """Get ticket by ticket_id."""
+        """根据ticket_id获取工单。"""
         return self.tickets.get(ticket_id)
 
     def list_by_order(self, order_id: str) -> List[Ticket]:
-        """List all tickets for an order."""
+        """列出订单的所有工单。"""
         ticket_ids = self.order_tickets.get(order_id, [])
         return [self.tickets[tid] for tid in ticket_ids if tid in self.tickets]

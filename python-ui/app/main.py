@@ -28,7 +28,7 @@ def create_app() -> FastAPI:
         debug=settings.app.debug
     )
     
-    # Configure CORS
+    # 配置CORS跨域
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors.allow_origins,
@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
         allow_headers=settings.cors.allow_headers
     )
     
-    # Mount static files
+    # 挂载静态文件
     static_paths = get_static_paths()
     app.mount(
         f"/static/{static_paths['css']}",
@@ -50,10 +50,10 @@ def create_app() -> FastAPI:
         name="static-js"
     )
     
-    # Set up templates
+    # 设置模板
     templates = Jinja2Templates(directory="app/templates")
     
-    # Include API routers
+    # 包含API路由
     app.include_router(auth.router)
     app.include_router(chat.router)
     
@@ -88,17 +88,17 @@ def create_app() -> FastAPI:
         Returns:
             HTMLResponse: Login page template or redirect to chat
         """
-        # Check if user is already logged in
+        # 检查用户是否已登录
         session_config = get_session_config()
         cookie_name = session_config["cookie_name"]
         
         token = request.cookies.get(cookie_name)
         
         if token:
-            # User is logged in, redirect to chat
+            # 用户已登录，重定向到聊天页面
             return RedirectResponse(url="/chat")
         
-        # Render login page
+        # 渲染登录页面
         return templates.TemplateResponse("login.html", {"request": request})
     
     @app.get("/chat", response_class=HTMLResponse)
@@ -119,17 +119,17 @@ def create_app() -> FastAPI:
         Returns:
             HTMLResponse: Chat page template or redirect to login
         """
-        # Check if user is authenticated
+        # 检查用户是否已认证
         session_config = get_session_config()
         cookie_name = session_config["cookie_name"]
         
         token = request.cookies.get(cookie_name)
         
         if not token:
-            # User is not logged in, redirect to login
+            # 用户未登录，重定向到登录页面
             return RedirectResponse(url="/login")
         
-        # Render chat page
+        # 渲染聊天页面
         return templates.TemplateResponse("chat.html", {"request": request})
     
     @app.get("/health")
@@ -147,23 +147,23 @@ def create_app() -> FastAPI:
     return app
 
 
-# Create application instance
+# 创建应用实例
 app = create_app()
 
 
-# Re-export configuration functions for convenience
+# 重新导出配置函数以方便使用
 def get_java_service_url() -> str:
-    """Get the Java service base URL."""
+    """获取Java服务基础URL。"""
     return settings.java_service.base_url
 
 
 def get_java_service_timeout() -> int:
-    """Get the Java service timeout in seconds."""
+    """获取Java服务的超时时间（秒）。"""
     return settings.java_service.timeout
 
 
 def get_session_config() -> dict:
-    """Get session configuration dictionary."""
+    """获取会话配置字典。"""
     return {
         "secret": settings.session.secret,
         "cookie_name": settings.session.cookie_name,
@@ -174,7 +174,7 @@ def get_session_config() -> dict:
 
 
 def get_static_paths() -> dict:
-    """Get static file paths configuration."""
+    """获取静态文件路径配置。"""
     return {
         "css": settings.static_files.css_path,
         "js": settings.static_files.js_path,

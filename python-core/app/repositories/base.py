@@ -1,7 +1,7 @@
-"""Repository abstract interfaces for data abstraction layer.
+"""数据抽象层的仓库抽象接口。
 
-This module defines the abstract interfaces for data access,
-allowing easy switching between mock and real data sources.
+该模块定义数据访问的抽象接口，
+允许在模拟和真实数据源之间轻松切换。
 """
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -11,110 +11,110 @@ from app.models import Order, Ticket, TrackingEvent
 
 
 class OrderRepository(ABC):
-    """Abstract interface for order data access."""
+    """订单数据访问的抽象接口。"""
 
     @abstractmethod
     def get_by_id(self, order_id: str) -> Optional[Order]:
-        """Get order by order_id.
+        """根据order_id获取订单。
         
         Args:
-            order_id: The order ID to look up.
+            order_id: 要查询的订单ID。
             
         Returns:
-            Order if found, None otherwise.
+            如果找到返回Order，否则返回None。
         """
         pass
 
     @abstractmethod
     def update_status(self, order_id: str, status: str) -> bool:
-        """Update order status.
+        """更新订单状态。
         
         Args:
-            order_id: The order ID to update.
-            status: The new status.
+            order_id: 要更新的订单ID。
+            status: 新状态。
             
         Returns:
-            True if update successful, False otherwise.
+            如果更新成功返回True，否则返回False。
         """
         pass
 
     @abstractmethod
     def cancel(self, order_id: str, reason: str) -> dict:
-        """Cancel an order.
+        """取消订单。
         
         Args:
-            order_id: The order ID to cancel.
-            reason: The cancellation reason.
+            order_id: 要取消的订单ID。
+            reason: 取消原因。
             
         Returns:
-            Dict with cancel result including refund info.
+            包含取消结果和退款信息的字典。
         """
         pass
 
 
 class LogisticsRepository(ABC):
-    """Abstract interface for logistics data access."""
+    """物流数据访问的抽象接口。"""
 
     @abstractmethod
     def get_tracking(self, order_id: str) -> List[TrackingEvent]:
-        """Get tracking events for an order.
+        """获取订单的物流轨迹事件。
         
         Args:
-            order_id: The order ID to look up.
+            order_id: 要查询的订单ID。
             
         Returns:
-            List of tracking events (max 3 recent).
+            物流事件列表（最多3条最近）。
         """
         pass
 
     @abstractmethod
     def get_estimated_delivery(self, order_id: str) -> Optional[datetime]:
-        """Get estimated delivery time for an order.
+        """获取订单的预计送达时间。
         
         Args:
-            order_id: The order ID to look up.
+            order_id: 要查询的订单ID。
             
         Returns:
-            Estimated delivery datetime if available.
+            如果可用返回预计送达时间。
         """
         pass
 
 
 class TicketRepository(ABC):
-    """Abstract interface for ticket data access."""
+    """工单数据访问的抽象接口。"""
 
     @abstractmethod
     def create(self, ticket: Ticket) -> Ticket:
-        """Create a new ticket.
+        """创建新工单。
         
         Args:
-            ticket: The ticket to create.
+            ticket: 要创建的工单。
             
         Returns:
-            The created ticket with generated ID.
+            带生成ID的已创建工单。
         """
         pass
 
     @abstractmethod
     def get_by_id(self, ticket_id: str) -> Optional[Ticket]:
-        """Get ticket by ticket_id.
+        """根据ticket_id获取工单。
         
         Args:
-            ticket_id: The ticket ID to look up.
+            ticket_id: 要查询的工单ID。
             
         Returns:
-            Ticket if found, None otherwise.
+            如果找到返回Ticket，否则返回None。
         """
         pass
 
     @abstractmethod
     def list_by_order(self, order_id: str) -> List[Ticket]:
-        """List all tickets for an order.
+        """列出订单的所有工单。
         
         Args:
-            order_id: The order ID to look up.
+            order_id: 要查询的订单ID。
             
         Returns:
-            List of tickets for the order.
+            订单的工单列表。
         """
         pass

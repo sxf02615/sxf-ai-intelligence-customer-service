@@ -12,42 +12,42 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 
-# Import models
+# 导入模型
 from app.models import IntentType, IntentResult, IntentEntities, Order, LogisticsInfo, Ticket
 
-# Import services
+# 导入服务
 from app.services.intent_recognition import get_intent_recognition_service, IntentRecognitionService
 from app.services.logistics import LogisticsService
 from app.services.urgent import UrgentService
 from app.services.cancel import CancelService, CancelResult
 
-# Import repositories
+# 导入仓库
 from app.repositories.base import OrderRepository, LogisticsRepository, TicketRepository
 from data.mock_data import MockOrderRepository, MockLogisticsRepository, MockTicketRepository
 
 
-# Create main router
+# 创建主路由
 router = APIRouter()
 
 
-# Dependency functions for service instances
+# 服务实例的依赖函数
 def get_order_repository() -> OrderRepository:
-    """Get order repository instance."""
+    """获取订单仓库实例。"""
     return MockOrderRepository()
 
 
 def get_logistics_repository() -> LogisticsRepository:
-    """Get logistics repository instance."""
+    """获取物流仓库实例。"""
     return MockLogisticsRepository()
 
 
 def get_ticket_repository() -> TicketRepository:
-    """Get ticket repository instance."""
+    """获取工单仓库实例。"""
     return MockTicketRepository()
 
 
 def get_intent_service() -> IntentRecognitionService:
-    """Get intent recognition service instance."""
+    """获取意图识别服务实例。"""
     return get_intent_recognition_service()
 
 
@@ -55,27 +55,27 @@ def get_logistics_service(
     order_repo: OrderRepository = Depends(get_order_repository),
     logistics_repo: LogisticsRepository = Depends(get_logistics_repository),
 ) -> LogisticsService:
-    """Get logistics service instance."""
+    """获取物流服务实例。"""
     return LogisticsService(order_repo, logistics_repo)
 
 
 def get_urgent_service(
     ticket_repo: TicketRepository = Depends(get_ticket_repository),
 ) -> UrgentService:
-    """Get urgent ticket service instance."""
+    """获取催单服务实例。"""
     return UrgentService(ticket_repo)
 
 
 def get_cancel_service(
     order_repo: OrderRepository = Depends(get_order_repository),
 ) -> CancelService:
-    """Get cancel order service instance."""
+    """获取取消订单服务实例。"""
     return CancelService(order_repo)
 
 
-# Chat request/response models
+# 聊天请求/响应模型
 class ChatRequest(BaseModel):
-    """Request model for chat endpoint."""
+    """聊天端点请求模型。"""
     session_id: str
     user_id: str
     message: str
@@ -115,10 +115,10 @@ async def chat_endpoint(
     Returns:
         ChatResponse with intent, response text, and session info
     """
-    # Step 1: Recognize intent from user message
+    # 步骤1：从用户消息中识别意图
     intent_result = intent_service.recognize(request.message)
     
-    # Step 2: Handle clarification if needed
+    # 步骤2：如有需要处理澄清
     if intent_result.needs_clarification:
         return ChatResponse(
             success=True,
@@ -129,12 +129,12 @@ async def chat_endpoint(
             clarification_question=intent_result.clarification_question,
         )
     
-    # Step 3: Route to appropriate service based on intent
+    # 步骤3：根据意图路由到相应的服务
     order_id = intent_result.entities.order_id
     user_detail = intent_result.entities.user_detail
     
     if intent_result.intent == IntentType.LOGISTICS:
-        # Handle logistics query
+        # 处理物流查询
         if not order_id:
             return ChatResponse(
                 success=True,
@@ -173,7 +173,7 @@ async def chat_endpoint(
         )
     
     elif intent_result.intent == IntentType.URGENT:
-        # Handle urgent ticket creation
+        # 处理催单工单创建
         if not order_id:
             return ChatResponse(
                 success=True,
@@ -200,7 +200,7 @@ async def chat_endpoint(
         )
     
     elif intent_result.intent == IntentType.CANCEL:
-        # Handle order cancellation
+        # 处理订单取消
         if not order_id:
             return ChatResponse(
                 success=True,

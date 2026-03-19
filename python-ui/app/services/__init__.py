@@ -1,4 +1,4 @@
-# Services module for Python UI
+# Python UI服务模块
 
 from app.services.http_client import (
     JavaServiceClient,

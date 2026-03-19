@@ -5,25 +5,25 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * User information retrieved from token validation.
- * FR1.5 - Authentication abstraction for business system integration
+ * 从令牌验证中获取的用户信息。
+ * FR1.5 - 业务系统集成的身份验证抽象
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserInfo {
     /**
-     * The unique identifier of the user
+     * 用户的唯一标识符
      */
     private String userId;
     
     /**
-     * The username of the user
+     * 用户名
      */
     private String username;
     
     /**
-     * Additional user attributes (e.g., role, department)
+     * 额外的用户属性（例如，角色、部门）
      */
     private String attributes;
 }

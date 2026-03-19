@@ -11,14 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Authentication service implementation.
- * FR1.3 - Token generation and validation
- * FR1.5 - Authentication abstraction for business system integration
+ * 认证服务实现。
+ * FR1.3 - 令牌生成和验证
+ * FR1.5 - 业务系统集成的身份验证抽象
  */
 @Service
 public class AuthServiceImpl implements AuthService {
     
-    private static final long TOKEN_EXPIRATION_MS = 3600000; // 1 hour
+    private static final long TOKEN_EXPIRATION_MS = 3600000; // 1小时
     
     private final AuthRepository authRepository;
     private final ConcurrentMap<String, TokenInfo> validTokens;
@@ -68,26 +68,26 @@ public class AuthServiceImpl implements AuthService {
     }
     
     /**
-     * Generates a unique authentication token.
+     * 生成唯一的认证令牌。
      * 
-     * @return a UUID-based token string
+     * @return 基于UUID的令牌字符串
      */
     private String generateToken() {
         return UUID.randomUUID().toString();
     }
     
     /**
-     * Checks if a token has expired.
+     * 检查令牌是否已过期。
      * 
-     * @param tokenInfo the token information to check
-     * @return true if the token is expired, false otherwise
+     * @param tokenInfo 要检查的令牌信息
+     * @return 如果令牌已过期返回true，否则返回false
      */
     private boolean isTokenExpired(TokenInfo tokenInfo) {
         return System.currentTimeMillis() > tokenInfo.expirationTime;
     }
     
     /**
-     * Internal class to store token metadata.
+     * 存储令牌元数据的内部类。
      */
     private static class TokenInfo {
         final String userId;

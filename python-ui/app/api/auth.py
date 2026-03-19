@@ -20,13 +20,13 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
 
 class LoginRequest(BaseModel):
-    """Login request model."""
+    """登录请求模型。"""
     username: str
     password: str
 
 
 class LoginResponse(BaseModel):
-    """Login response model."""
+    """登录响应模型。"""
     success: bool
     message: str
     token: Optional[str] = None
@@ -35,13 +35,13 @@ class LoginResponse(BaseModel):
 
 
 class JavaLoginRequest(BaseModel):
-    """Request model for Java authentication service."""
+    """Java认证服务的请求模型。"""
     username: str
     password: str
 
 
 class JavaLoginResponse(BaseModel):
-    """Response model from Java authentication service."""
+    """Java认证服务的响应模型。"""
     success: bool
     message: str
     data: Optional[dict] = None
@@ -49,7 +49,7 @@ class JavaLoginResponse(BaseModel):
 
 
 def get_java_auth_url() -> str:
-    """Get the Java authentication service URL."""
+    """获取Java认证服务URL。"""
     return f"{get_java_service_url()}/api/v1/auth/login"
 
 
@@ -105,8 +105,8 @@ def create_session_response(
     """
     session_config = get_session_config()
     
-    # Set session cookie
-    max_age = expires_in if expires_in > 0 else 3600  # Default 1 hour
+    # 设置会话cookie
+    max_age = expires_in if expires_in > 0 else 3600  # 默认1小时
     response.set_cookie(
         key=session_config["cookie_name"],
         value=token,
@@ -139,7 +139,7 @@ async def login(
         
     Requirements: FR1.1, FR1.2, FR1.3
     """
-    # Validate input
+    # 验证输入
     if not request.username or not request.password:
         return LoginResponse(
             success=False,
@@ -152,7 +152,7 @@ async def login(
             message="用户名和密码不能为空"
         )
     
-    # Call Java authentication service
+    # 调用Java认证服务
     try:
         java_response = await call_java_auth_service(
             request.username,
@@ -161,15 +161,15 @@ async def login(
     except HTTPException:
         raise
     
-    # Handle Java service response
+    # 处理Java服务响应
     if java_response.get("success"):
-        # Extract token data from Java response
+        # 从Java响应中提取token数据
         data = java_response.get("data", {})
         token = data.get("token")
         user_id = data.get("user_id")
         expires_in = data.get("expires_in", 3600)
         
-        # Set session cookie
+        # 设置会话cookie
         create_session_response(response, token, user_id, expires_in)
         
         return LoginResponse(
@@ -180,7 +180,7 @@ async def login(
             expires_in=expires_in
         )
     else:
-        # Authentication failed
+        # 认证失败
         error_code = java_response.get("error", "AUTH_002")
         error_message = java_response.get("message", "用户名或密码错误")
         
@@ -206,7 +206,7 @@ async def logout(request: Request, response: Response) -> dict:
     """
     session_config = get_session_config()
     
-    # Clear session cookie
+    # 清除会话cookie
     response.delete_cookie(
         key=session_config["cookie_name"],
         httponly=session_config["httponly"],

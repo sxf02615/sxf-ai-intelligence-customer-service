@@ -1,7 +1,7 @@
-"""Cancel Order Service for handling order cancellation and refunds.
+"""取消订单服务，用于处理订单取消和退款。
 
-This service handles order cancellation operations including status validation,
-refund processing, and result reporting based on FR5 requirements.
+该服务处理订单取消操作，包括状态验证、
+退款处理和基于FR5要求的结果报告。
 """
 
 from datetime import datetime, timedelta
@@ -14,7 +14,7 @@ from app.repositories.base import OrderRepository
 
 
 class CancelResult(BaseModel):
-    """Result of a cancel order operation."""
+    """取消订单操作的结果。"""
 
     success: bool
     order_id: str
@@ -27,16 +27,16 @@ class CancelResult(BaseModel):
 
 
 class CancelService:
-    """Service for handling order cancellation and refunds."""
+    """处理订单取消和退款的服务。"""
 
-    # Refund processing time in days
+    # 退款处理天数
     REFUND_PROCESSING_DAYS = 3
 
     def __init__(self, order_repository: OrderRepository):
-        """Initialize the cancel service.
+        """初始化取消服务。
 
         Args:
-            order_repository: Repository for order data access.
+            order_repository: 订单数据访问的仓库。
         """
         self.order_repository = order_repository
 
@@ -45,16 +45,16 @@ class CancelService:
         order_id: str,
         reason: Optional[str] = None,
     ) -> CancelResult:
-        """Cancel an order and process refund if applicable.
+        """取消订单并在适用时处理退款。
 
         Args:
-            order_id: The order ID to cancel.
-            reason: Optional reason for cancellation.
+            order_id: 要取消的订单ID。
+            reason: 可选的取消原因。
 
         Returns:
-            CancelResult with cancellation status and refund info.
+            包含取消状态和退款信息的CancelResult。
         """
-        # Get order
+        # 获取订单
         order = self.order_repository.get_by_id(order_id)
         if not order:
             return CancelResult(
@@ -63,7 +63,7 @@ class CancelService:
                 message="Order not found",
             )
 
-        # Validate order status
+        # 验证订单状态
         if order.status == OrderStatus.CANCELLED:
             return CancelResult(
                 success=False,
@@ -78,10 +78,10 @@ class CancelService:
                 message="Order is delivered, please use after-sales return process",
             )
 
-        # Process cancellation via repository
+        # 通过仓库处理取消
         result = self.order_repository.cancel(order_id, reason or "User requested cancellation")
 
-        # Calculate refund arrival time
+        # 计算退款到账时间
         refund_arrival_time = None
         if result.get("success"):
             refund_arrival_time = self._calculate_refund_arrival_time()
@@ -95,21 +95,21 @@ class CancelService:
         )
 
     def _calculate_refund_arrival_time(self) -> datetime:
-        """Calculate when refund will arrive in user's account.
+        """计算退款到账时间。
 
         Returns:
-            Estimated refund arrival datetime.
+            预计退款到账时间。
         """
         return datetime.now() + timedelta(days=self.REFUND_PROCESSING_DAYS)
 
     def validate_order_for_cancellation(self, order_id: str) -> tuple[bool, str]:
-        """Validate if an order can be cancelled.
+        """验证订单是否可以取消。
 
         Args:
-            order_id: The order ID to validate.
+            order_id: 要验证的订单ID。
 
         Returns:
-            Tuple of (is_valid, reason_if_invalid)
+            (是否有效, 无效原因)的元组
         """
         order = self.order_repository.get_by_id(order_id)
         if not order:
@@ -124,13 +124,13 @@ class CancelService:
         return True, ""
 
     def get_refund_amount(self, order_id: str) -> Optional[float]:
-        """Get the refund amount for an order.
+        """获取订单的退款金额。
 
         Args:
-            order_id: The order ID.
+            order_id: 订单ID。
 
         Returns:
-            Refund amount if order exists, None otherwise.
+            如果订单存在返回退款金额，否则返回None。
         """
         order = self.order_repository.get_by_id(order_id)
         if order:

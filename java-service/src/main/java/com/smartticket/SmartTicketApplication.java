@@ -5,11 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
 /**
- * Smart Ticket Service - Main Application Entry Point
+ * 智能工单服务 - 主应用程序入口点
  * 
- * This is the Java User Layer for the Smart Ticket System.
- * It handles authentication, session management, and acts as an API gateway
- * between the UI layer and the Python Core business layer.
+ * 这是智能工单系统的Java用户层。
+ * 它处理身份验证、会话管理，并作为UI层和Python核心业务层之间的API网关。
  */
 @SpringBootApplication
 @EnableFeignClients

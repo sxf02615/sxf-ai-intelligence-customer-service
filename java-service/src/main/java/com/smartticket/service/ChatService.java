@@ -15,8 +15,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
- * Chat service for communicating with Python Core Service.
- * NFR7, NFR8 - HTTP communication with Python core service
+ * 与Python核心服务通信的聊天服务。
+ * NFR7, NFR8 - 与Python核心服务的HTTP通信
  */
 @Service
 public class ChatService {
@@ -30,80 +30,80 @@ public class ChatService {
     }
     
     /**
-     * Process chat message and route to appropriate service.
-     * FR1.3 - Chat interaction
+     * 处理聊天消息并路由到相应的服务。
+     * FR1.3 - 聊天交互
      * 
-     * @param request the chat request containing user message
-     * @return ApiResponse containing chat response
+     * @param request 包含用户消息的聊天请求
+     * @return 包含聊天响应的ApiResponse
      */
     public ApiResponse<ChatResponse> processChat(ChatRequest request) {
         try {
-            logger.info("Processing chat request for session: {}", request.getSessionId());
+            logger.info("正在处理会话 {} 的聊天请求", request.getSessionId());
             
             ChatResponse response = ticketServiceClient.chat(request);
             
-            logger.debug("Chat response received, intent: {}", response.getIntent());
+            logger.debug("收到聊天响应，意图: {}", response.getIntent());
             
             return ApiResponse.success(response);
             
         } catch (Exception e) {
-            logger.error("Error processing chat request: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to process chat: " + e.getMessage(), "CHAT_ERROR");
+            logger.error("处理聊天请求时出错: {}", e.getMessage(), e);
+            return ApiResponse.error("处理聊天失败: " + e.getMessage(), "CHAT_ERROR");
         }
     }
     
     /**
-     * Get logistics information for an order.
-     * FR3.1, FR3.2, FR3.3, FR3.4 - Logistics query
+     * 获取订单的物流信息。
+     * FR3.1, FR3.2, FR3.3, FR3.4 - 物流查询
      * 
-     * @param orderId the order ID to query
-     * @return ApiResponse containing logistics information
+     * @param orderId 要查询的订单ID
+     * @return 包含物流信息的ApiResponse
      */
     public ApiResponse<LogisticsResponse> getLogistics(String orderId) {
         try {
-            logger.info("Fetching logistics for order: {}", orderId);
+            logger.info("正在获取订单 {} 的物流信息", orderId);
             
             LogisticsResponse response = ticketServiceClient.getLogistics(orderId);
             
-            logger.debug("Logistics response received for order: {}", orderId);
+            logger.debug("收到订单 {} 的物流响应", orderId);
             
             return ApiResponse.success(response);
             
         } catch (Exception e) {
-            logger.error("Error fetching logistics for order {}: {}", orderId, e.getMessage(), e);
-            return ApiResponse.error("Failed to fetch logistics: " + e.getMessage(), "LOGISTICS_ERROR");
+            logger.error("获取订单 {} 的物流信息时出错: {}", orderId, e.getMessage(), e);
+            return ApiResponse.error("获取物流信息失败: " + e.getMessage(), "LOGISTICS_ERROR");
         }
     }
     
     /**
-     * Create an urgent ticket for an order.
-     * FR4.1, FR4.2, FR4.3, FR4.4 - Urgent ticket creation
+     * 为订单创建催单工单。
+     * FR4.1, FR4.2, FR4.3, FR4.4 - 催单工单创建
      * 
-     * @param request the urgent ticket request
-     * @return ApiResponse containing created ticket information
+     * @param request 催单工单请求
+     * @return 包含已创建工单信息的ApiResponse
      */
     public ApiResponse<UrgentTicketResponse> createUrgentTicket(UrgentTicketRequest request) {
         try {
-            logger.info("Creating urgent ticket for order: {}", request.getOrderId());
+            logger.info("正在为订单 {} 创建催单工单", request.getOrderId());
             
             UrgentTicketResponse response = ticketServiceClient.createUrgentTicket(request);
             
-            logger.debug("Urgent ticket created: {}", response.getTicketId());
+            logger.debug("催单工单已创建: {}", response.getTicketId());
             
-            return ApiResponse.success(response, "Urgent ticket created successfully");
+            return ApiResponse.success(response, "催单工单创建成功");
             
         } catch (Exception e) {
-            logger.error("Error creating urgent ticket for order {}: {}", request.getOrderId(), e.getMessage(), e);
-            return ApiResponse.error("Failed to create urgent ticket: " + e.getMessage(), "URGENT_TICKET_ERROR");
+            logger.error("为订单 {} 创建催单工单时出错: {}", request.getOrderId(), e.getMessage(), e);
+            return ApiResponse.error("创建催单工单失败: " + e.getMessage(), "URGENT_TICKET_ERROR");
         }
     }
     
     /**
-     * Cancel an order.
-     * FR5.1, FR5.2, FR5.3, FR5.4, FR5.5 - Order cancellation
+     * 取消订单。
+     * FR5.1, FR5.2, FR5.3, FR5.4, FR5.5 - 订单取消
      * 
-     * @param request the cancel order request
-     * @return ApiResponse containing cancellation result
+     * @param request 取消订单请求
+     * @return 包含取消结果的ApiResponse
      */
     public ApiResponse<CancelOrderResponse> cancelOrder(CancelOrderRequest request) {
         try {

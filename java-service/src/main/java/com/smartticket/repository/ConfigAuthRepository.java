@@ -41,12 +41,12 @@ public class ConfigAuthRepository implements AuthRepository {
     
     @PostConstruct
     public void init() {
-        // Load admin user
+        // 加载管理员用户
         UserInfo adminUser = new UserInfo("1", adminUsername, adminAttributes);
         users.put(adminUsername, adminUser);
         passwordStore.put(adminUsername, adminPassword);
         
-        // Load regular user
+        // 加载普通用户
         UserInfo regularUser = new UserInfo("2", userUsername, userAttributes);
         users.put(userUsername, regularUser);
         passwordStore.put(userUsername, userPassword);

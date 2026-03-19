@@ -1,8 +1,7 @@
-"""Urgent Ticket Service for handling ticket creation and management.
+"""催单工单服务，用于处理工单创建和管理。
 
-This service handles urgent ticket operations including ticket creation,
-priority assignment, estimated processing time calculation, and
-customer service notification.
+该服务处理催单工单操作，包括工单创建、优先级分配、
+预计处理时间计算和客服通知。
 """
 import logging
 import time
@@ -16,28 +15,28 @@ from app.models import (
 )
 from app.repositories.base import TicketRepository
 
-# Configure logger for customer service notifications
+# 配置客服通知日志记录器
 logger = logging.getLogger(__name__)
 
 
 class UrgentService:
-    """Service for handling urgent ticket operations."""
+    """处理催单工单操作的服务。"""
 
-    # Customer service contact information
+    # 客服联系方式
     CUSTOMER_SERVICE_CONTACT = "400-123-4567"
 
-    # Estimated processing time in hours by priority
+    # 按优先级划分的预计处理时间（小时）
     PROCESSING_TIME_HOURS = {
-        TicketPriority.HIGH: 2,   # 2 hours for high priority
-        TicketPriority.MEDIUM: 4,  # 4 hours for medium priority
-        TicketPriority.LOW: 8,     # 8 hours for low priority
+        TicketPriority.HIGH: 2,   # 高优先级2小时
+        TicketPriority.MEDIUM: 4,  # 中优先级4小时
+        TicketPriority.LOW: 8,     # 低优先级8小时
     }
 
     def __init__(self, ticket_repository: TicketRepository):
-        """Initialize the urgent ticket service.
+        """初始化催单服务。
 
         Args:
-            ticket_repository: Repository for ticket data access.
+            ticket_repository: 工单数据访问的仓库。
         """
         self.ticket_repository = ticket_repository
 
@@ -46,25 +45,25 @@ class UrgentService:
         order_id: str,
         reason: Optional[str] = None,
     ) -> dict:
-        """Create an urgent ticket for an order.
+        """为订单创建催单工单。
 
         Args:
-            order_id: The order ID to create ticket for.
-            reason: Optional reason for the urgent ticket.
+            order_id: 要创建工单的订单ID。
+            reason: 催单的可选原因。
 
         Returns:
-            Dict with ticket_id, estimated_processing_time, and contact info.
+            包含ticket_id、estimated_processing_time和联系信息的字典。
         """
-        # Generate ticket ID with TKT+timestamp format
+        # 生成TKT+时间戳格式的工单ID
         ticket_id = self._generate_ticket_id()
 
-        # Determine priority based on reason content
+        # 根据原因内容确定优先级
         priority = self._determine_priority(reason)
 
-        # Calculate estimated processing time
+        # 计算预计处理时间
         estimated_processing_time = self._calculate_estimated_processing_time(priority)
 
-        # Create ticket
+        # 创建工单
         now = datetime.now()
         ticket = Ticket(
             ticket_id=ticket_id,
@@ -76,10 +75,10 @@ class UrgentService:
             estimated_processing_time=estimated_processing_time,
         )
 
-        # Save ticket to repository
+        # 保存工单到仓库
         created_ticket = self.ticket_repository.create(ticket)
 
-        # Notify customer service (log notification)
+        # 通知客服（记录通知）
         self._notify_customer_service(created_ticket)
 
         return {
@@ -93,38 +92,38 @@ class UrgentService:
         }
 
     def _generate_ticket_id(self) -> str:
-        """Generate a unique ticket ID with TKT+timestamp format.
+        """生成唯一的TKT+时间戳格式的工单ID。
 
         Returns:
-            Ticket ID string in format TKT+timestamp.
+            TKT+时间戳格式的工单ID字符串。
         """
         import uuid
-        timestamp = int(time.time() * 1000000)  # microseconds
-        unique_id = uuid.uuid4().hex[:8]  # Add UUID suffix for guaranteed uniqueness
+        timestamp = int(time.time() * 1000000)  # 微秒
+        unique_id = uuid.uuid4().hex[:8]  # 添加UUID后缀以保证唯一性
         return f"TKT{timestamp}{unique_id}"
 
     def _determine_priority(self, reason: Optional[str]) -> TicketPriority:
-        """Determine ticket priority based on reason content.
+        """根据原因内容确定工单优先级。
 
         Args:
-            reason: The reason for creating the urgent ticket.
+            reason: 创建催单工单的原因。
 
         Returns:
-            TicketPriority based on reason analysis.
+            基于原因分析的TicketPriority。
         """
         if not reason:
-            # Default to medium priority if no reason provided
+            # 如果没有提供原因，默认中等优先级
             return TicketPriority.MEDIUM
 
         reason_lower = reason.lower()
 
-        # High priority keywords
+        # 高优先级关键词
         high_priority_keywords = [
             "紧急", "非常急", "马上", "立刻", "尽快",
             "urgent", "asap", "immediately", "emergency",
         ]
 
-        # Low priority keywords
+        # 低优先级关键词
         low_priority_keywords = [
             "不急", "慢慢来", "有空处理", "不着急",
             "not urgent", "when possible", "no rush",
@@ -138,58 +137,58 @@ class UrgentService:
             if keyword in reason_lower:
                 return TicketPriority.LOW
 
-        # Default to medium priority
+        # 默认中等优先级
         return TicketPriority.MEDIUM
 
     def _calculate_estimated_processing_time(
         self,
         priority: TicketPriority,
     ) -> datetime:
-        """Calculate estimated processing time based on priority.
+        """根据优先级计算预计处理时间。
 
         Args:
-            priority: The ticket priority level.
+            priority: 工单优先级。
 
         Returns:
-            Estimated processing datetime.
+            预计处理时间。
         """
         hours = self.PROCESSING_TIME_HOURS.get(priority, self.PROCESSING_TIME_HOURS[TicketPriority.MEDIUM])
         return datetime.now() + timedelta(hours=hours)
 
     def _notify_customer_service(self, ticket: Ticket) -> None:
-        """Send notification to customer service.
+        """发送通知给客服。
 
         Args:
-            ticket: The created ticket to notify about.
+            ticket: 要通知的已创建工单。
         """
         notification_message = (
-            f"[Customer Service Notification] New urgent ticket created:\n"
-            f"  Ticket ID: {ticket.ticket_id}\n"
-            f"  Order ID: {ticket.order_id}\n"
-            f"  Priority: {ticket.priority.value}\n"
-            f"  Reason: {ticket.reason or 'Not provided'}\n"
-            f"  Estimated Processing Time: {ticket.estimated_processing_time.isoformat()}"
+            f"[客服通知] 新催单工单已创建:\n"
+            f"  工单ID: {ticket.ticket_id}\n"
+            f"  订单ID: {ticket.order_id}\n"
+            f"  优先级: {ticket.priority.value}\n"
+            f"  原因: {ticket.reason or '未提供'}\n"
+            f"  预计处理时间: {ticket.estimated_processing_time.isoformat()}"
         )
         logger.info(notification_message)
 
     def get_ticket(self, ticket_id: str) -> Optional[Ticket]:
-        """Get a ticket by its ID.
+        """根据ID获取工单。
 
         Args:
-            ticket_id: The ticket ID to look up.
+            ticket_id: 要查询的工单ID。
 
         Returns:
-            Ticket if found, None otherwise.
+            如果找到返回工单，否则返回None。
         """
         return self.ticket_repository.get_by_id(ticket_id)
 
     def list_tickets_by_order(self, order_id: str) -> list[Ticket]:
-        """List all tickets for an order.
+        """列出订单的所有工单。
 
         Args:
-            order_id: The order ID to look up.
+            order_id: 要查询的订单ID。
 
         Returns:
-            List of tickets for the order.
+            订单的工单列表。
         """
         return self.ticket_repository.list_by_order(order_id)

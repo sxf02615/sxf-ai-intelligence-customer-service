@@ -58,7 +58,7 @@ class JavaServiceClient:
         self._client: Optional[httpx.AsyncClient] = None
     
     def _get_client(self) -> httpx.AsyncClient:
-        """Get or create the HTTP client instance."""
+        """获取或创建HTTP客户端实例。"""
         if self._client is None:
             self._client = httpx.AsyncClient(timeout=self.timeout)
         return self._client
@@ -95,7 +95,7 @@ class JavaServiceClient:
         try:
             yield client
         finally:
-            pass  # Client lifecycle managed externally
+            pass  # 客户端生命周期由外部管理
     
     @retry(
         stop=stop_after_attempt(3),
@@ -370,17 +370,17 @@ class JavaServiceClient:
             )
     
     async def close(self):
-        """Close the HTTP client and release resources."""
+        """关闭HTTP客户端并释放资源。"""
         if self._client:
             await self._client.aclose()
             self._client = None
     
     async def __aenter__(self) -> "JavaServiceClient":
-        """Async context manager entry."""
+        """异步上下文管理器入口。"""
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit."""
+        """异步上下文管理器退出。"""
         await self.close()
 
 
@@ -399,7 +399,7 @@ class JavaServiceError(Exception):
         super().__init__(self.message)
 
 
-# Global client instance for convenience
+# 全局客户端实例以方便使用
 _client: Optional[JavaServiceClient] = None
 
 
@@ -417,7 +417,7 @@ def get_java_client() -> JavaServiceClient:
 
 
 async def close_java_client():
-    """Close the global Java service client."""
+    """关闭全局Java服务客户端。"""
     global _client
     if _client:
         await _client.close()

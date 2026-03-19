@@ -10,13 +10,13 @@ from pydantic import BaseModel
 
 
 class JavaServiceConfig(BaseModel):
-    """Java service configuration settings."""
+    """Java服务配置设置。"""
     base_url: str = "http://localhost:8080"
     timeout: int = 30
 
 
 class SessionConfig(BaseModel):
-    """Session configuration settings."""
+    """会话配置设置。"""
     secret: str = "default-session-secret-change-in-production"
     cookie_name: str = "session_id"
     timeout_minutes: int = 60
@@ -25,14 +25,14 @@ class SessionConfig(BaseModel):
 
 
 class StaticFilesConfig(BaseModel):
-    """Static files configuration settings."""
+    """静态文件配置设置。"""
     css_path: str = "css"
     js_path: str = "js"
     images_path: str = "images"
 
 
 class AppConfig(BaseModel):
-    """Application configuration settings."""
+    """应用配置设置。"""
     host: str = "0.0.0.0"
     port: int = 8001
     debug: bool = False
@@ -40,7 +40,7 @@ class AppConfig(BaseModel):
 
 
 class CORSConfig(BaseModel):
-    """CORS (Cross-Origin Resource Sharing) configuration settings."""
+    """CORS（跨域资源共享）配置设置。"""
     allow_origins: list = ["*"]
     allow_credentials: bool = True
     allow_methods: list = ["*"]
@@ -53,19 +53,19 @@ class Settings(BaseModel):
     
     Uses pydantic for type validation and python-dotenv for .env file loading.
     """
-    # Java Service Configuration
+    # Java服务配置
     java_service: JavaServiceConfig = JavaServiceConfig()
     
-    # Application Configuration
+    # 应用配置
     app: AppConfig = AppConfig()
     
-    # Session Configuration
+    # 会话配置
     session: SessionConfig = SessionConfig()
     
-    # Static Files Configuration
+    # 静态文件配置
     static_files: StaticFilesConfig = StaticFilesConfig()
     
-    # CORS Configuration
+    # CORS配置
     cors: CORSConfig = CORSConfig()
 
 
@@ -122,16 +122,16 @@ def load_settings() -> Settings:
     Returns:
         Settings: Loaded settings instance
     """
-    # Load .env file if it exists
+    # 如果存在则加载.env文件
     load_dotenv()
     
-    # Java service settings
+    # Java服务设置
     java_service_config = JavaServiceConfig(
         base_url=_get_env("JAVA_SERVICE_URL", "http://localhost:8080"),
         timeout=_get_int_env("JAVA_SERVICE_TIMEOUT", 30)
     )
     
-    # App settings
+    # 应用设置
     app_config = AppConfig(
         host=_get_env("APP_HOST", "0.0.0.0"),
         port=_get_int_env("APP_PORT", 8001),
@@ -139,7 +139,7 @@ def load_settings() -> Settings:
         title=_get_env("APP_TITLE", "Smart Ticket System")
     )
     
-    # Session settings
+    # 会话设置
     session_config = SessionConfig(
         secret=_get_env("SESSION_SECRET", "default-session-secret-change-in-production"),
         cookie_name=_get_env("SESSION_COOKIE_NAME", "session_id"),
@@ -148,14 +148,14 @@ def load_settings() -> Settings:
         httponly=_get_bool_env("SESSION_HTTPONLY", True)
     )
     
-    # Static files settings
+    # 静态文件设置
     static_files_config = StaticFilesConfig(
         css_path=_get_env("STATIC_CSS_PATH", "css"),
         js_path=_get_env("STATIC_JS_PATH", "js"),
         images_path=_get_env("STATIC_IMAGES_PATH", "images")
     )
     
-    # CORS settings
+    # CORS设置
     cors_origins = _get_env("CORS_ALLOW_ORIGINS", "*").split(",")
     cors_config = CORSConfig(
         allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
@@ -173,7 +173,7 @@ def load_settings() -> Settings:
     )
 
 
-# Global settings instance
+# 全局设置实例
 settings = load_settings()
 
 

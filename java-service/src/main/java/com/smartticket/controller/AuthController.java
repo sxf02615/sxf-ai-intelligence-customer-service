@@ -34,17 +34,17 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest) {
-        // Validate request
+        // 验证请求
         if (loginRequest == null || 
             loginRequest.getUsername() == null || 
             loginRequest.getPassword() == null ||
             loginRequest.getUsername().isBlank() || 
             loginRequest.getPassword().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Username and password are required", "AUTH_001"));
+                    .body(ApiResponse.error("用户名和密码不能为空", "AUTH_001"));
         }
         
-        // Authenticate user
+        // 验证用户
         AuthResult result = authService.authenticate(loginRequest.getUsername(), loginRequest.getPassword());
         
         if (result.isSuccess()) {
@@ -52,10 +52,10 @@ public class AuthController {
                     true,
                     result.getToken(),
                     result.getUserId(),
-                    3600 // Token expires in 1 hour (seconds)
+                    3600 // Token有效期1小时（秒）
             );
             
-            return ResponseEntity.ok(ApiResponse.success(loginResponse, "Login successful"));
+            return ResponseEntity.ok(ApiResponse.success(loginResponse, "登录成功"));
         }
         
         return ResponseEntity.status(401)
