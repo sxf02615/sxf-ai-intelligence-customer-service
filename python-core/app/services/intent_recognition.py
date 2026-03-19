@@ -2,11 +2,11 @@
 智能工单系统的意图识别服务。
 
 使用LangChain和结构化输出进行意图分类和实体提取。
+支持多种LLM提供商：OpenAI、DeepSeek、豆包等。
 """
 import logging
 from typing import Optional
 
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.messages import HumanMessage
@@ -16,7 +16,8 @@ from app.models import (
     IntentEntities,
     IntentResult,
 )
-from app.config import get_llm_config, settings
+from app.config import settings
+from app.services.llm_factory import LLMFactory
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +63,7 @@ class IntentRecognitionService:
     def llm(self):
         """LLM的延迟初始化。"""
         if self._llm is None:
-            llm_config = get_llm_config()
-            self._llm = ChatOpenAI(
-                model=llm_config.get("model", "gpt-3.5-turbo"),
-                api_key=llm_config.get("api_key", ""),
-                temperature=0,
-            )
+            self._llm = LLMFactory.get_default_llm(temperature=0)
         return self._llm
     
     @property

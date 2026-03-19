@@ -1,5 +1,6 @@
 package com.smartticket.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CancelOrderRequest {
+    @JsonProperty("order_id")
     private String orderId;
     private String reason;
 }

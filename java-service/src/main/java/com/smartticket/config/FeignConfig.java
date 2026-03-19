@@ -1,5 +1,6 @@
 package com.smartticket.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,13 +31,15 @@ public class FeignConfig {
     }
 
     @Bean
-    public Encoder feignEncoder() {
-        return new JacksonEncoder();
+    public Encoder feignEncoder(ObjectMapper objectMapper) {
+        // 使用配置了snake_case的ObjectMapper
+        return new JacksonEncoder(objectMapper);
     }
 
     @Bean
-    public Decoder feignDecoder() {
-        return new JacksonDecoder();
+    public Decoder feignDecoder(ObjectMapper objectMapper) {
+        // 使用配置了snake_case的ObjectMapper
+        return new JacksonDecoder(objectMapper);
     }
 
     @Bean

@@ -16,10 +16,19 @@ class DataSourceType(str, Enum):
     REAL = "real"
 
 
+class LLMProvider(str, Enum):
+    """LLM provider enumeration."""
+    OPENAI = "openai"
+    DEEPSEEK = "deepseek"
+    DOUBAO = "doubao"
+
+
 class LLMConfig(BaseModel):
     """LLM configuration settings."""
+    provider: LLMProvider = LLMProvider.OPENAI
     api_key: str = ""
     model: str = "gpt-3.5-turbo"
+    base_url: str = ""
 
 
 class AppConfig(BaseModel):
@@ -155,9 +164,39 @@ def load_settings() -> Settings:
     load_dotenv()
     
     # LLM settings
+    provider_value = _get_env("LLM_PROVIDER", "openai").lower()
+    provider = LLMProvider.OPENAI
+    if provider_value == "deepseek":
+        provider = LLMProvider.DEEPSEEK
+    elif provider_value == "doubao":
+        provider = LLMProvider.DOUBAO
+    
+    # Get API key based on provider
+    api_key = ""
+    if provider == LLMProvider.OPENAI:
+        api_key = _get_env("OPENAI_API_KEY", "")
+    elif provider == LLMProvider.DEEPSEEK:
+        api_key = _get_env("DEEPSEEK_API_KEY", "")
+    elif provider == LLMProvider.DOUBAO:
+        api_key = _get_env("DOUBAO_API_KEY", "")
+    
+    # Get model based on provider
+    model = ""
+    if provider == LLMProvider.OPENAI:
+        model = _get_env("OPENAI_MODEL", "gpt-3.5-turbo")
+    elif provider == LLMProvider.DEEPSEEK:
+        model = _get_env("DEEPSEEK_MODEL", "deepseek-chat")
+    elif provider == LLMProvider.DOUBAO:
+        model = _get_env("DOUBAO_MODEL", "Doubao-pro-32k")
+    
+    # Get base URL if provided
+    base_url = _get_env("LLM_BASE_URL", "")
+    
     llm_config = LLMConfig(
-        api_key=_get_env("OPENAI_API_KEY", ""),
-        model=_get_env("OPENAI_MODEL", "gpt-3.5-turbo")
+        provider=provider,
+        api_key=api_key,
+        model=model,
+        base_url=base_url
     )
     
     # App settings
@@ -217,11 +256,13 @@ def get_llm_config() -> dict:
     Get LLM configuration dictionary for LangChain.
     
     Returns:
-        dict: LLM configuration with API key and model name.
+        dict: LLM configuration with provider, API key, model name, and base URL.
     """
     return {
+        "provider": settings.llm.provider,
         "api_key": settings.llm.api_key,
         "model": settings.llm.model,
+        "base_url": settings.llm.base_url,
     }
 
 
