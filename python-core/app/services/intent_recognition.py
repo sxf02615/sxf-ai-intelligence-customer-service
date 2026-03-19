@@ -161,8 +161,8 @@ class IntentRecognitionService:
                     entities=result.entities,
                 )
                 logger.info(
-                    f"Low confidence ({result.confidence:.2f}) for intent '{result.intent.value}', "
-                    f"requesting clarification"
+                    f"意图 '{result.intent.value}' 置信度较低 ({result.confidence:.2f})，"
+                    f"请求澄清"
                 )
             
             # Check if order_id is missing
@@ -174,20 +174,20 @@ class IntentRecognitionService:
                     entities=result.entities,
                 )
                 logger.info(
-                    f"Missing order_id for intent '{result.intent.value}', "
-                    f"requesting clarification"
+                    f"意图 '{result.intent.value}' 缺少order_id，"
+                    f"请求澄清"
                 )
             
             logger.info(
-                f"Intent recognized: {result.intent.value}, "
-                f"confidence: {result.confidence:.2f}, "
-                f"order_id: {result.entities.order_id}"
+                f"意图已识别: {result.intent.value}, "
+                f"置信度: {result.confidence:.2f}, "
+                f"订单号: {result.entities.order_id}"
             )
             
             return result
             
         except Exception as e:
-            logger.error(f"Error in intent recognition: {e}")
+            logger.error(f"意图识别出错: {e}")
             # Return a clarification result on error
             return IntentResult(
                 intent=IntentType.LOGISTICS,

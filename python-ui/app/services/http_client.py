@@ -128,7 +128,7 @@ class JavaServiceClient:
         url = f"{self.base_url}{endpoint}"
         headers = self._get_headers(token)
         
-        logger.debug(f"GET {url}")
+        logger.debug(f"GET请求: {url}")
         
         async with self.client_context(token) as client:
             return await client.get(
@@ -168,7 +168,7 @@ class JavaServiceClient:
         url = f"{self.base_url}{endpoint}"
         headers = self._get_headers(token)
         
-        logger.debug(f"POST {url}")
+        logger.debug(f"POST请求: {url}")
         
         async with self.client_context(token) as client:
             return await client.post(
@@ -219,15 +219,15 @@ class JavaServiceClient:
             return response.json()
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"Chat API error: {e.response.status_code} - {e.response.text}")
+            logger.error(f"聊天API错误: {e.response.status_code} - {e.response.text}")
             raise JavaServiceError(
-                f"Chat service error: {e.response.status_code}",
+                f"聊天服务错误: {e.response.status_code}",
                 status_code=e.response.status_code
             )
         except httpx.RequestError as e:
-            logger.error(f"Chat API request error: {str(e)}")
+            logger.error(f"聊天API请求错误: {str(e)}")
             raise JavaServiceError(
-                f"Failed to connect to chat service: {str(e)}",
+                f"连接聊天服务失败: {str(e)}",
                 status_code=503
             )
     
@@ -261,15 +261,15 @@ class JavaServiceClient:
             return response.json()
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"Logistics API error: {e.response.status_code} - {e.response.text}")
+            logger.error(f"物流API错误: {e.response.status_code} - {e.response.text}")
             raise JavaServiceError(
-                f"Logistics service error: {e.response.status_code}",
+                f"物流服务错误: {e.response.status_code}",
                 status_code=e.response.status_code
             )
         except httpx.RequestError as e:
-            logger.error(f"Logistics API request error: {str(e)}")
+            logger.error(f"物流API请求错误: {str(e)}")
             raise JavaServiceError(
-                f"Failed to connect to logistics service: {str(e)}",
+                f"连接物流服务失败: {str(e)}",
                 status_code=503
             )
     
@@ -309,15 +309,15 @@ class JavaServiceClient:
             return response.json()
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"Urgent ticket API error: {e.response.status_code} - {e.response.text}")
+            logger.error(f"催单工单API错误: {e.response.status_code} - {e.response.text}")
             raise JavaServiceError(
-                f"Urgent ticket service error: {e.response.status_code}",
+                f"催单工单服务错误: {e.response.status_code}",
                 status_code=e.response.status_code
             )
         except httpx.RequestError as e:
-            logger.error(f"Urgent ticket API request error: {str(e)}")
+            logger.error(f"催单工单API请求错误: {str(e)}")
             raise JavaServiceError(
-                f"Failed to connect to urgent ticket service: {str(e)}",
+                f"连接催单工单服务失败: {str(e)}",
                 status_code=503
             )
     
@@ -357,15 +357,15 @@ class JavaServiceClient:
             return response.json()
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"Cancel order API error: {e.response.status_code} - {e.response.text}")
+            logger.error(f"取消订单API错误: {e.response.status_code} - {e.response.text}")
             raise JavaServiceError(
-                f"Cancel order service error: {e.response.status_code}",
+                f"取消订单服务错误: {e.response.status_code}",
                 status_code=e.response.status_code
             )
         except httpx.RequestError as e:
-            logger.error(f"Cancel order API request error: {str(e)}")
+            logger.error(f"取消订单API请求错误: {str(e)}")
             raise JavaServiceError(
-                f"Failed to connect to cancel order service: {str(e)}",
+                f"连接取消订单服务失败: {str(e)}",
                 status_code=503
             )
     

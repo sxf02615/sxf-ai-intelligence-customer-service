@@ -107,18 +107,18 @@ public class ChatService {
      */
     public ApiResponse<CancelOrderResponse> cancelOrder(CancelOrderRequest request) {
         try {
-            logger.info("Cancelling order: {}", request.getOrderId());
+            logger.info("正在取消订单: {}", request.getOrderId());
             
             CancelOrderResponse response = ticketServiceClient.cancelOrder(request);
             
-            logger.debug("Order cancelled: {}, refund amount: {}", 
+            logger.debug("订单已取消: {}, 退款金额: {}", 
                     response.getOrderId(), response.getRefundAmount());
             
-            return ApiResponse.success(response, "Order cancelled successfully");
+            return ApiResponse.success(response, "订单取消成功");
             
         } catch (Exception e) {
-            logger.error("Error cancelling order {}: {}", request.getOrderId(), e.getMessage(), e);
-            return ApiResponse.error("Failed to cancel order: " + e.getMessage(), "CANCEL_ORDER_ERROR");
+            logger.error("取消订单 {} 时出错: {}", request.getOrderId(), e.getMessage(), e);
+            return ApiResponse.error("取消订单失败: " + e.getMessage(), "CANCEL_ORDER_ERROR");
         }
     }
 }
