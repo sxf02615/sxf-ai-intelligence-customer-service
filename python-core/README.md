@@ -15,7 +15,7 @@
 - FastAPI - Web 框架
 - LangChain - AI 框架
 - Pydantic - 数据验证
-- OpenAI API - LLM 支持
+- 多 LLM 支持 - OpenAI、DeepSeek、豆包等
 
 ## 项目结构
 
