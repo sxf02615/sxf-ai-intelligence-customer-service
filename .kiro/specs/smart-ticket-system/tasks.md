@@ -346,7 +346,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Redirect to login page
   - _Requirements: FR1.5_
 
-- [ ]* 9.6 Write unit tests for chat functionality
+- [x] 9.6 Write unit tests for chat functionality
   - Test chat page rendering
   - Test message sending and receiving
   - Test intent-specific response handling
@@ -375,7 +375,7 @@ The implementation follows a bottom-up approach, starting with the data layer an
   - Test response formatting and display
   - _Requirements: FR2.1, FR2.2, FR2.3, FR2.4, FR2.5_
 
-- [-] 10.4 Integration testing - Business logic
+- [x] 10.4 Integration testing - Business logic
   - Test logistics query flow end-to-end
   - Test urgent ticket creation flow end-to-end
   - Test cancel order flow end-to-end

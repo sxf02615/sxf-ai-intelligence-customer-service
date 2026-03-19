@@ -26,9 +26,9 @@ class SessionConfig(BaseModel):
 
 class StaticFilesConfig(BaseModel):
     """Static files configuration settings."""
-    css_path: str = "static/css"
-    js_path: str = "static/js"
-    images_path: str = "static/images"
+    css_path: str = "css"
+    js_path: str = "js"
+    images_path: str = "images"
 
 
 class AppConfig(BaseModel):
@@ -150,9 +150,9 @@ def load_settings() -> Settings:
     
     # Static files settings
     static_files_config = StaticFilesConfig(
-        css_path=_get_env("STATIC_CSS_PATH", "static/css"),
-        js_path=_get_env("STATIC_JS_PATH", "static/js"),
-        images_path=_get_env("STATIC_IMAGES_PATH", "static/images")
+        css_path=_get_env("STATIC_CSS_PATH", "css"),
+        js_path=_get_env("STATIC_JS_PATH", "js"),
+        images_path=_get_env("STATIC_IMAGES_PATH", "images")
     )
     
     # CORS settings
