@@ -8,9 +8,12 @@ This module defines the API endpoints for:
 - Order cancellation
 """
 
+import logging
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # 导入模型
 from app.models import IntentType, IntentResult, IntentEntities, Order, LogisticsInfo, Ticket
@@ -123,6 +126,9 @@ async def chat_endpoint(
         ChatResponse with intent, response text, and session info
     """
     # 步骤1：从用户消息中识别意图
+    logger.info(f"==> 收到聊天请求: session_id={request.session_id}, message={request.message}")
+    logger.info(f"    请求context: {request.context}")
+    
     intent_result = intent_service.recognize(request.message)
     
     # 步骤2：如果需要澄清，检查是否有上下文中的订单号
@@ -132,14 +138,18 @@ async def chat_endpoint(
         if request.context and "pending_order_id" in request.context:
             saved_order_id = request.context.get("pending_order_id")
         
+        logger.info(f"    意图识别结果: intent={intent_result.intent.value}, confidence={intent_result.confidence:.2f}, order_id={intent_result.entities.order_id}")
+        logger.info(f"    需要澄清: needs_clarification=True, saved_order_id={saved_order_id}")
+        
         # 如果有保存的订单号且用户确认了，直接处理
         if saved_order_id and _is_confirmation(request.message):
+            logger.info(f"    用户确认订单号: {saved_order_id}")
             intent_result.entities.order_id = saved_order_id
             intent_result.needs_clarification = False
         else:
             # 保存当前识别的订单号到context，供下次使用
             response_context = {"pending_order_id": intent_result.entities.order_id} if intent_result.entities.order_id else None
-            return ChatResponse(
+            response = ChatResponse(
                 success=True,
                 response=intent_result.clarification_question or "请提供更多信息以便我帮助您。",
                 intent=intent_result.intent.value,
@@ -148,6 +158,9 @@ async def chat_endpoint(
                 clarification_question=intent_result.clarification_question,
                 context=response_context,
             )
+            logger.info(f"<== 返回响应: needs_clarification=True, response={response.response[:50]}...")
+            logger.info(f"    返回context: {response_context}")
+            return response
     
     # 步骤3：根据意图路由到相应的服务
     order_id = intent_result.entities.order_id
@@ -155,7 +168,10 @@ async def chat_endpoint(
     
     if intent_result.intent == IntentType.LOGISTICS:
         # 处理物流查询
+        logger.info(f"    处理物流查询: order_id={order_id}")
+        
         if not order_id:
+            logger.info(f"    缺少订单号，需要澄清")
             return ChatResponse(
                 success=True,
                 response="请提供您要查询的订单号，例如：查询ORD001的物流",
@@ -168,6 +184,7 @@ async def chat_endpoint(
         
         logistics_info = logistics_service.get_logistics_info(order_id)
         if not logistics_info:
+            logger.info(f"    订单不存在: {order_id}")
             return ChatResponse(
                 success=False,
                 response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
@@ -185,6 +202,8 @@ async def chat_endpoint(
             for i, event in enumerate(logistics_info.tracking_history, 1):
                 location = event.location or "未知地点"
                 response_text += f"{i}. {event.status} - {event.timestamp.strftime('%Y-%m-%d %H:%M')} ({location})\n"
+        
+        logger.info(f"    物流查询成功: order_id={order_id}, status={logistics_info.latest_status}")
         
         return ChatResponse(
             success=True,
