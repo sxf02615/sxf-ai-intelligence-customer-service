@@ -7,6 +7,7 @@ and managing user sessions.
 Requirements: FR1.1, FR1.2, FR1.3
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, Response, Request
 from pydantic import BaseModel
 from typing import Optional
@@ -14,6 +15,8 @@ import httpx
 import time
 
 from app.config import get_java_service_url, get_java_service_timeout, get_session_config
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
@@ -70,15 +73,27 @@ async def call_java_auth_service(username: str, password: str) -> dict:
     timeout = get_java_service_timeout()
     java_url = get_java_auth_url()
     
+    payload = {"username": username, "password": password}
+    
+    # Log the request to Java service
+    logger.info(f"==> 发送请求到 Java 服务: {java_url}")
+    logger.info(f"    请求内容: {payload}")
+    
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             response = await client.post(
                 java_url,
-                json={"username": username, "password": password},
+                json=payload,
                 headers={"Content-Type": "application/json"}
             )
-            return response.json()
+            result = response.json()
+            
+            # Log the response from Java service
+            logger.info(f"<== 收到 Java 服务响应: {result}")
+            
+            return result
         except httpx.RequestError as e:
+            logger.error(f"❌ Java 服务调用失败: {e}")
             raise HTTPException(
                 status_code=503,
                 detail=f"Authentication service unavailable: {str(e)}"

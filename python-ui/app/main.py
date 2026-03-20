@@ -6,6 +6,9 @@ Provides user interface endpoints including login and chat pages.
 Requirements: FR1.1, FR2.1, NFR1
 """
 
+import logging
+import sys
+import time
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +17,41 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings, get_static_paths, get_session_config
 from app.api import auth, chat
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
+logger = logging.getLogger(__name__)
+
+
+class LoggingMiddleware:
+    """Middleware to log all incoming requests and outgoing responses."""
+    
+    async def __call__(self, request: Request, call_next):
+        # Log incoming request
+        body = None
+        if request.method in ["POST", "PUT", "PATCH"]:
+            body = await request.body()
+            body_str = body.decode() if body else ""
+            logger.info(f"==> 收到请求: {request.method} {request.url.path}")
+            logger.info(f"    请求头: {dict(request.headers)}")
+            if body_str:
+                logger.info(f"    请求体: {body_str[:500]}")
+        
+        # Process request
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        
+        # Log outgoing response
+        logger.info(f"<== 返回响应: {request.method} {request.url.path} - {response.status_code}")
+        logger.info(f"    处理时间: {process_time:.3f}s")
+        
+        return response
 
 
 def create_app() -> FastAPI:
@@ -36,6 +74,9 @@ def create_app() -> FastAPI:
         allow_methods=settings.cors.allow_methods,
         allow_headers=settings.cors.allow_headers
     )
+    
+    # 添加日志中间件
+    app.middleware("http")(LoggingMiddleware())
     
     # 挂载静态文件
     static_paths = get_static_paths()

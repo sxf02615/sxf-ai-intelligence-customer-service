@@ -7,12 +7,15 @@ which routes to the Python core for intent recognition and processing.
 Requirements: NFR7
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 import httpx
 
 from app.config import get_java_service_url, get_java_service_timeout, get_session_config
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -116,6 +119,10 @@ async def call_java_chat_service(
     if context:
         payload["context"] = context
     
+    # Log the request to Java service
+    logger.info(f"==> 发送请求到 Java 服务: {java_url}")
+    logger.info(f"    请求内容: {payload}")
+    
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             response = await client.post(
@@ -123,8 +130,14 @@ async def call_java_chat_service(
                 json=payload,
                 headers={"Content-Type": "application/json"}
             )
-            return response.json()
+            result = response.json()
+            
+            # Log the response from Java service
+            logger.info(f"<== 收到 Java 服务响应: {result}")
+            
+            return result
         except httpx.RequestError as e:
+            logger.error(f"❌ Java 服务调用失败: {e}")
             raise HTTPException(
                 status_code=503,
                 detail=f"Chat service unavailable: {str(e)}"
