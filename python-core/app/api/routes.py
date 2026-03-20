@@ -258,7 +258,10 @@ async def chat_endpoint(
     
     elif intent_result.intent == IntentType.CANCEL:
         # 处理订单取消
+        logger.info(f"    处理订单取消: order_id={order_id}")
+        
         if not order_id:
+            logger.info(f"    缺少订单号，需要澄清")
             return ChatResponse(
                 success=True,
                 response="请提供您要取消的订单号",
@@ -272,6 +275,7 @@ async def chat_endpoint(
         # 检查订单是否存在
         order = logistics_service.order_repository.get_by_id(order_id)
         if not order:
+            logger.info(f"    订单不存在: {order_id}")
             return ChatResponse(
                 success=False,
                 response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
@@ -282,6 +286,7 @@ async def chat_endpoint(
         result = cancel_service.cancel_order(order_id, user_detail)
         
         if result.success:
+            logger.info(f"    订单取消成功: order_id={order_id}, refund={result.refund_amount}")
             response_text = f"订单取消成功：\n"
             response_text += f"订单号：{result.order_id}\n"
             response_text += f"退款金额：¥{result.refund_amount:.2f}\n"
@@ -289,6 +294,7 @@ async def chat_endpoint(
                 response_text += f"退款到账时间：{result.refund_arrival_time.strftime('%Y-%m-%d')}\n"
             response_text += f"信息：{result.message}"
         else:
+            logger.info(f"    订单取消失败: order_id={order_id}, reason={result.message}")
             response_text = f"无法取消订单：\n"
             response_text += f"原因：{result.message}"
         
@@ -300,6 +306,7 @@ async def chat_endpoint(
         )
     
     # Fallback for unknown intent
+    logger.info(f"    未知意图，跳转到fallback")
     return ChatResponse(
         success=True,
         response="抱歉，我无法理解您的请求。请尝试描述您的需求（查询物流、催单或取消订单）。",
