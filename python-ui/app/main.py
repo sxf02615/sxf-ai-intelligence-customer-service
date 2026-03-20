@@ -86,8 +86,8 @@ def create_app() -> FastAPI:
         name="static-css"
     )
     app.mount(
-        f"/static/{static_paths['js']}",
-        StaticFiles(directory=f"app/static/{static_paths['js']}"),
+        "/static/js",
+        StaticFiles(directory="app/static/js"),
         name="static-js"
     )
     

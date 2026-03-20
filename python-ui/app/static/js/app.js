@@ -107,8 +107,12 @@ class ChatApplication {
         try {
             const response = await this.sendMessage(message);
             
+            console.log('==> 处理响应:');
+            console.log('    response.success:', response.success);
+            console.log('    response:', response);
+            
             if (response.success) {
-                this.sessionId = response.data.session_id;
+                this.sessionId = response.session_id;
                 
                 // Show typing indicator
                 this.showTypingIndicator();
@@ -118,8 +122,9 @@ class ChatApplication {
                 this.hideTypingIndicator();
                 
                 // Add assistant response with intent-specific formatting
-                this.addAssistantMessage(response.data);
+                this.addAssistantMessage(response);
             } else {
+                console.log('    显示错误:', response.message);
                 this.showError(response.message || '处理失败，请稍后重试');
             }
         } catch (error) {
@@ -136,19 +141,31 @@ class ChatApplication {
      * @returns {Promise<Object>} Response data
      */
     async sendMessage(message) {
+        const payload = {
+            session_id: this.sessionId,
+            user_id: this.userId,
+            message: message
+        };
+        
+        console.log('==> 发送请求到 Python UI 服务: /api/chat');
+        console.log('    请求地址: http://127.0.0.1:8001/api/chat');
+        console.log('    请求内容:', payload);
+        
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                session_id: this.sessionId,
-                user_id: this.userId,
-                message: message
-            })
+            body: JSON.stringify(payload)
         });
 
-        return await response.json();
+        const result = await response.json();
+        
+        console.log('<== 收到 Python UI 服务响应:');
+        console.log('    状态码:', response.status);
+        console.log('    响应内容:', result);
+        
+        return result;
     }
 
     /**
@@ -224,7 +241,16 @@ class ChatApplication {
      * @param {Object} data - Response data from server
      */
     addAssistantMessage(data) {
-        const { response, intent, data: structuredData } = data;
+        console.log('==> addAssistantMessage 收到数据:');
+        console.log('    data:', data);
+        
+        const response = data.response || '';
+        const intent = data.intent || null;
+        const structuredData = data.data || null;
+        
+        console.log('    解析后 - response:', response);
+        console.log('    解析后 - intent:', intent);
+        console.log('    解析后 - structuredData:', structuredData);
         
         // Create message container
         const messageDiv = document.createElement('div');
@@ -258,7 +284,18 @@ class ChatApplication {
      * @returns {string} Formatted HTML
      */
     formatResponseByIntent(intent, response, structuredData) {
+        console.log('==> formatResponseByIntent:');
+        console.log('    intent:', intent);
+        console.log('    response:', response);
+        console.log('    structuredData:', structuredData);
+        
         let formattedHtml = this.escapeHtml(response);
+        
+        // If there's no structured data, just return the plain response
+        if (!structuredData) {
+            console.log('    无 structuredData，直接返回纯文本');
+            return formattedHtml;
+        }
         
         // Add structured data based on intent type
         switch (intent) {
@@ -271,6 +308,8 @@ class ChatApplication {
             case 'cancel':
                 formattedHtml = this.formatCancelResponse(response, structuredData);
                 break;
+            default:
+                console.log('    未知的 intent，不格式化');
         }
         
         return formattedHtml;
@@ -283,11 +322,22 @@ class ChatApplication {
      * @returns {string} Formatted HTML
      */
     formatLogisticsResponse(response, data) {
-        if (!data || !data.order_info) {
+        console.log('==> formatLogisticsResponse:');
+        console.log('    data:', data);
+        
+        // Handle flat data structure
+        const orderId = data?.order_id || data?.order_info?.order_id;
+        const status = data?.status || data?.order_info?.status;
+        const tracking = data?.tracking_history || data?.tracking || data?.order_info?.tracking;
+        const estimatedDelivery = data?.estimated_delivery;
+        
+        console.log('    解析后 - orderId:', orderId, 'status:', status);
+        
+        if (!orderId) {
+            console.log('    无 orderId，返回纯文本');
             return this.escapeHtml(response);
         }
 
-        const { order_info, tracking, estimated_delivery } = data;
         let html = `<p>${this.escapeHtml(response)}</p>`;
         
         // Order status card
@@ -295,8 +345,8 @@ class ChatApplication {
             <div style="margin-top: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
                 <strong style="color: #333;">📦 订单信息</strong>
                 <div style="margin-top: 8px; font-size: 14px; color: #555;">
-                    <div><strong>订单号：</strong>${this.escapeHtml(order_info.order_id || 'N/A')}</div>
-                    <div><strong>状态：</strong>${this.formatOrderStatus(order_info.status)}</div>
+                    <div><strong>订单号：</strong>${this.escapeHtml(orderId || 'N/A')}</div>
+                    <div><strong>状态：</strong>${this.formatOrderStatus(status)}</div>
                 </div>
             </div>
         `;
@@ -328,11 +378,11 @@ class ChatApplication {
         }
 
         // Estimated delivery
-        if (estimated_delivery) {
+        if (estimatedDelivery) {
             html += `
                 <div style="margin-top: 12px; padding: 10px; background: #e8f4fd; border-radius: 8px; font-size: 14px;">
                     <strong style="color: #1976d2;">🚚 预计送达：</strong>
-                    <span style="color: #1976d2;">${this.escapeHtml(estimated_delivery)}</span>
+                    <span style="color: #1976d2;">${this.escapeHtml(estimatedDelivery)}</span>
                 </div>
             `;
         }
@@ -347,17 +397,25 @@ class ChatApplication {
      * @returns {string} Formatted HTML
      */
     formatUrgentResponse(response, data) {
+        console.log('==> formatUrgentResponse:');
+        console.log('    data:', data);
+        
+        // Handle flat data structure
+        const ticketId = data?.ticket_id || data?.ticket_info?.ticket_id;
+        const estimatedTime = data?.estimated_processing_time || data?.ticket_info?.estimated_time;
+        const contact = data?.contact || data?.ticket_info?.contact;
+        
+        console.log('    解析后 - ticketId:', ticketId);
+        
         let html = `<p>${this.escapeHtml(response)}</p>`;
         
-        if (data && data.ticket_info) {
-            const { ticket_id, estimated_time, contact } = data.ticket_info;
-            
+        if (ticketId) {
             html += `
                 <div style="margin-top: 12px; padding: 12px; background: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800;">
                     <strong style="color: #e65100;">⚡ 催单工单已创建</strong>
                     <div style="margin-top: 8px; font-size: 14px; color: #555;">
-                        <div><strong>工单号：</strong>${this.escapeHtml(ticket_id || 'N/A')}</div>
-                        ${estimated_time ? `<div><strong>预计处理时间：</strong>${this.escapeHtml(estimated_time)}</div>` : ''}
+                        <div><strong>工单号：</strong>${this.escapeHtml(ticketId || 'N/A')}</div>
+                        ${estimatedTime ? `<div><strong>预计处理时间：</strong>${this.escapeHtml(estimatedTime)}</div>` : ''}
                         ${contact ? `<div><strong>客服联系方式：</strong>${this.escapeHtml(contact)}</div>` : ''}
                     </div>
                 </div>
@@ -374,19 +432,29 @@ class ChatApplication {
      * @returns {string} Formatted HTML
      */
     formatCancelResponse(response, data) {
+        console.log('==> formatCancelResponse:');
+        console.log('    data:', data);
+        
+        // Handle flat data structure
+        const success = data?.success;
+        const refundAmount = data?.refund_amount;
+        const refundTime = data?.refund_arrival_time || data?.refund_time;
+        const orderId = data?.order_id;
+        const message = data?.message;
+        
+        console.log('    解析后 - orderId:', orderId, 'success:', success);
+        
         let html = `<p>${this.escapeHtml(response)}</p>`;
         
-        if (data && data.cancel_result) {
-            const { success, refund_amount, refund_time, order_id } = data.cancel_result;
-            
+        if (orderId) {
             if (success) {
                 html += `
                     <div style="margin-top: 12px; padding: 12px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;">
                         <strong style="color: #2e7d32;">✅ 取消成功</strong>
                         <div style="margin-top: 8px; font-size: 14px; color: #555;">
-                            <div><strong>订单号：</strong>${this.escapeHtml(order_id || 'N/A')}</div>
-                            <div><strong>退款金额：</strong>¥${refund_amount ? parseFloat(refund_amount).toFixed(2) : '0.00'}</div>
-                            ${refund_time ? `<div><strong>退款到账时间：</strong>${this.escapeHtml(refund_time)}</div>` : ''}
+                            <div><strong>订单号：</strong>${this.escapeHtml(orderId || 'N/A')}</div>
+                            <div><strong>退款金额：</strong>¥${refundAmount ? parseFloat(refundAmount).toFixed(2) : '0.00'}</div>
+                            ${refundTime ? `<div><strong>退款到账时间：</strong>${this.escapeHtml(refundTime)}</div>` : ''}
                         </div>
                     </div>
                 `;
@@ -395,7 +463,7 @@ class ChatApplication {
                     <div style="margin-top: 12px; padding: 12px; background: #ffebee; border-radius: 8px; border-left: 4px solid #f44336;">
                         <strong style="color: #c62828;">❌ 取消失败</strong>
                         <div style="margin-top: 8px; font-size: 14px; color: #555;">
-                            <div>${this.escapeHtml(data.cancel_result.message || '无法取消该订单')}</div>
+                            <div>${this.escapeHtml(message || '无法取消该订单')}</div>
                         </div>
                     </div>
                 `;
@@ -504,5 +572,8 @@ class ChatApplication {
 
 // Initialize chat application when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('==> app.js 已加载');
+    console.log('    ChatApplication:', typeof ChatApplication);
     window.chatApp = new ChatApplication();
+    console.log('    chatApp 初始化完成:', window.chatApp);
 });

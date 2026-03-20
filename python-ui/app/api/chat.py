@@ -25,6 +25,7 @@ class ChatRequest(BaseModel):
     """聊天请求模型（来自UI）。"""
     message: str
     session_id: Optional[str] = None
+    user_id: Optional[str] = None
     context: Optional[dict] = None
 
 
@@ -174,7 +175,7 @@ async def chat(
     # 获取会话信息
     session_config = get_session_config()
     cookie_name = session_config["cookie_name"]
-    session_id = http_request.cookies.get(cookie_name)
+    session_id = request.session_id or http_request.cookies.get(cookie_name)
     
     if not session_id:
         return ChatResponse(
@@ -183,8 +184,8 @@ async def chat(
             message="未找到有效的会话，请重新登录"
         )
     
-    # 从会话中获取用户ID
-    user_id = get_user_id_from_session(http_request)
+    # 从请求或会话中获取用户ID
+    user_id = request.user_id or get_user_id_from_session(http_request)
     if not user_id:
         return ChatResponse(
             success=False,
@@ -208,11 +209,11 @@ async def chat(
         data = java_response.get("data", {})
         
         return ChatResponse(
-            success=True,
+            success=data.get("success", True),
             response=data.get("response", ""),
             intent=data.get("intent"),
             session_id=data.get("session_id"),
-            needs_clarification=data.get("needsClarification", False)
+            needs_clarification=data.get("needs_clarification", False)
         )
     else:
         # 聊天处理失败
