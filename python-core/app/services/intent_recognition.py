@@ -5,21 +5,27 @@
 支持多种LLM提供商：OpenAI、DeepSeek、豆包等。
 """
 import logging
+import time
 from typing import Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.messages import HumanMessage
+from langchain_core.exceptions import LangChainException
 
 from app.models import (
     IntentType,
     IntentEntities,
     IntentResult,
 )
-from app.config import settings
+from app.config import settings, get_llm_config
 from app.services.llm_factory import LLMFactory
 
 logger = logging.getLogger(__name__)
+
+# 重试配置
+MAX_RETRIES = 3
+RETRY_DELAY = 1  # 秒
 
 
 # Prompt template for intent classification
@@ -124,74 +130,114 @@ class IntentRecognitionService:
     ) -> IntentResult:
         """
         从用户消息中识别意图并提取实体。
-        
+
         Args:
             user_message: 用户的输入消息
             conversation_history: 可选的对话历史用于上下文
-            
+
         Returns:
             IntentResult: 识别的意图和提取的实体
         """
-        try:
-            # Get format instructions from parser
-            format_instructions = self.parser.get_format_instructions()
+        last_error = None
+        
+        for attempt in range(MAX_RETRIES):
+            # Log the LLM request BEFORE attempting
+            llm_config = get_llm_config()
+            provider = llm_config.get('provider')
+            model = llm_config.get('model')
+            base_url = llm_config.get('base_url')
             
-            # Create the prompt with user message
-            prompt_value = self.prompt.format(
-                user_message=user_message,
-                format_instructions=format_instructions,
-            )
+            # Construct actual URL based on provider if not set
+            if not base_url:
+                if provider == "deepseek":
+                    base_url = "https://api.deepseek.com/v1"
+                elif provider == "openai":
+                    base_url = "https://api.openai.com/v1"
+                elif provider == "doubao":
+                    base_url = "https://ark.cn-beijing.volces.com/api/v3"
+                else:
+                    base_url = "unknown"
             
-            # Call LLM with structured output
-            response = self.llm.invoke([HumanMessage(content=prompt_value)])
+            api_key = llm_config.get('api_key', '')
+            masked_key = api_key[:8] + "****" + api_key[-4:] if len(api_key) > 12 else "****"
             
-            # Parse the response into IntentResult
-            result = self.parser.parse(response.content)
+            logger.info(f"==> 发送请求到第三方 LLM (尝试 {attempt + 1}/{MAX_RETRIES}): {provider} - {model}")
+            logger.info(f"    请求地址: {base_url}")
+            logger.info(f"    API Key: {masked_key}")
+            logger.info(f"    请求内容: {user_message[:200]}")
             
-            # Check confidence threshold and handle clarification
-            if result.confidence < self._confidence_threshold:
-                result.needs_clarification = True
-                result.clarification_question = self._create_clarification_question(
-                    intent=result.intent,
-                    confidence=result.confidence,
-                    entities=result.entities,
+            try:
+                # Get format instructions from parser
+                format_instructions = self.parser.get_format_instructions()
+                
+                # Create the prompt with user message
+                prompt_value = self.prompt.format(
+                    user_message=user_message,
+                    format_instructions=format_instructions,
                 )
+                
+                # Call LLM with structured output
+                response = self.llm.invoke([HumanMessage(content=prompt_value)])
+                
+                # Log the LLM response
+                logger.info(f"<== 收到第三方 LLM 响应: {response.content[:500]}")
+                
+                # Parse the response into IntentResult
+                result = self.parser.parse(response.content)
+                
+                # Check confidence threshold and handle clarification
+                if result.confidence < self._confidence_threshold:
+                    result.needs_clarification = True
+                    result.clarification_question = self._create_clarification_question(
+                        intent=result.intent,
+                        confidence=result.confidence,
+                        entities=result.entities,
+                    )
+                    logger.info(
+                        f"意图 '{result.intent.value}' 置信度较低 ({result.confidence:.2f})，"
+                        f"请求澄清"
+                    )
+                
+                # Check if order_id is missing
+                if not result.entities.order_id:
+                    result.needs_clarification = True
+                    result.clarification_question = self._create_clarification_question(
+                        intent=result.intent,
+                        confidence=result.confidence,
+                        entities=result.entities,
+                    )
+                    logger.info(
+                        f"意图 '{result.intent.value}' 缺少order_id，"
+                        f"请求澄清"
+                    )
+                
                 logger.info(
-                    f"意图 '{result.intent.value}' 置信度较低 ({result.confidence:.2f})，"
-                    f"请求澄清"
+                    f"意图已识别: {result.intent.value}, "
+                    f"置信度: {result.confidence:.2f}, "
+                    f"订单号: {result.entities.order_id}"
                 )
-            
-            # Check if order_id is missing
-            if not result.entities.order_id:
-                result.needs_clarification = True
-                result.clarification_question = self._create_clarification_question(
-                    intent=result.intent,
-                    confidence=result.confidence,
-                    entities=result.entities,
-                )
-                logger.info(
-                    f"意图 '{result.intent.value}' 缺少order_id，"
-                    f"请求澄清"
-                )
-            
-            logger.info(
-                f"意图已识别: {result.intent.value}, "
-                f"置信度: {result.confidence:.2f}, "
-                f"订单号: {result.entities.order_id}"
-            )
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"意图识别出错: {e}")
-            # Return a clarification result on error
-            return IntentResult(
-                intent=IntentType.LOGISTICS,
-                confidence=0.0,
-                entities=IntentEntities(),
-                needs_clarification=True,
-                clarification_question="抱歉，我遇到了一个问题。请重新描述一下您的需求可以吗？",
-            )
+                
+                return result
+                
+            except Exception as e:
+                last_error = e
+                error_type = type(e).__name__
+                logger.warning(f"意图识别尝试 {attempt + 1}/{MAX_RETRIES} 失败: {error_type} - {e}")
+                
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_DELAY * (attempt + 1))  # 指数退避
+        
+        # 所有重试都失败
+        logger.error(f"意图识别最终失败: {last_error}")
+        
+        # 返回一个澄清结果，并包含错误信息
+        return IntentResult(
+            intent=IntentType.LOGISTICS,
+            confidence=0.0,
+            entities=IntentEntities(),
+            needs_clarification=True,
+            clarification_question="抱歉，服务暂时不可用。请稍后重试或联系客服。",
+        )
     
     def get_clarification_response(
         self,

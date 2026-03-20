@@ -4,15 +4,23 @@ LLM Factory for managing different LLM providers.
 This module provides a factory pattern for creating LLM instances
 for different providers (OpenAI, DeepSeek, Doubao).
 """
+import os
 import logging
 from typing import Optional
 
 from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
+from langchain_core.exceptions import LangChainException
 
 from app.config import LLMProvider, get_llm_config
 
 logger = logging.getLogger(__name__)
+
+# 禁用系统代理（用于 DeepSeek 等不需要代理的 API）
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("HTTPS_PROXY", None)
+os.environ.pop("http_proxy", None)
+os.environ.pop("https_proxy", None)
 
 
 class LLMFactory:
@@ -71,26 +79,35 @@ class LLMFactory:
         if base_url:
             common_params["base_url"] = base_url
         
+        # Create custom HTTP client without proxy
+        import httpx
+        http_client = httpx.Client(proxies={"http://": None, "https://": None})
+        common_params["http_client"] = http_client
+        
         # Create LLM based on provider
-        if provider == LLMProvider.OPENAI:
-            return ChatOpenAI(**common_params)
-        
-        elif provider == LLMProvider.DEEPSEEK:
-            # DeepSeek uses OpenAI-compatible API
-            deepseek_params = common_params.copy()
-            if not base_url:
-                deepseek_params["base_url"] = "https://api.deepseek.com/v1"
-            return ChatOpenAI(**deepseek_params)
-        
-        elif provider == LLMProvider.DOUBAO:
-            # Doubao uses OpenAI-compatible API
-            doubao_params = common_params.copy()
-            if not base_url:
-                doubao_params["base_url"] = "https://ark.cn-beijing.volces.com/api/v3"
-            return ChatOpenAI(**doubao_params)
-        
-        else:
-            raise ValueError(f"Unsupported LLM provider: {provider}")
+        try:
+            if provider == LLMProvider.OPENAI:
+                return ChatOpenAI(**common_params)
+            
+            elif provider == LLMProvider.DEEPSEEK:
+                # DeepSeek uses OpenAI-compatible API
+                deepseek_params = common_params.copy()
+                if not base_url:
+                    deepseek_params["base_url"] = "https://api.deepseek.com/v1"
+                return ChatOpenAI(**deepseek_params)
+            
+            elif provider == LLMProvider.DOUBAO:
+                # Doubao uses OpenAI-compatible API
+                doubao_params = common_params.copy()
+                if not base_url:
+                    doubao_params["base_url"] = "https://ark.cn-beijing.volces.com/api/v3"
+                return ChatOpenAI(**doubao_params)
+            
+            else:
+                raise ValueError(f"Unsupported LLM provider: {provider}")
+        except Exception as e:
+            logger.error(f"创建LLM实例失败 (provider={provider}, model={model}): {e}")
+            raise
     
     @staticmethod
     def get_default_llm(temperature: float = 0) -> BaseChatModel:
