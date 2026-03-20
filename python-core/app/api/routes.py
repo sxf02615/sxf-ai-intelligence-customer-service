@@ -214,7 +214,10 @@ async def chat_endpoint(
     
     elif intent_result.intent == IntentType.URGENT:
         # 处理催单工单创建
+        logger.info(f"    处理催单工单: order_id={order_id}")
+        
         if not order_id:
+            logger.info(f"    缺少订单号，需要澄清")
             return ChatResponse(
                 success=True,
                 response="请提供您要催单的订单号",
@@ -228,6 +231,7 @@ async def chat_endpoint(
         # 检查订单是否存在
         order = logistics_service.order_repository.get_by_id(order_id)
         if not order:
+            logger.info(f"    订单不存在: {order_id}")
             return ChatResponse(
                 success=False,
                 response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
@@ -236,6 +240,8 @@ async def chat_endpoint(
             )
         
         result = urgent_service.create_urgent_ticket(order_id, user_detail)
+        
+        logger.info(f"    催单工单创建成功: ticket_id={result['ticket_id']}")
         
         response_text = f"已为您创建催单工单：\n"
         response_text += f"工单号：{result['ticket_id']}\n"
