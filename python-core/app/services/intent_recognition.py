@@ -141,7 +141,7 @@ class IntentRecognitionService:
         last_error = None
         
         for attempt in range(MAX_RETRIES):
-            # Log the LLM request BEFORE attempting
+            # Get LLM configuration
             llm_config = get_llm_config()
             provider = llm_config.get('provider')
             model = llm_config.get('model')
@@ -155,16 +155,12 @@ class IntentRecognitionService:
                     base_url = "https://api.openai.com/v1"
                 elif provider == "doubao":
                     base_url = "https://ark.cn-beijing.volces.com/api/v3"
+                elif provider == "qwen":
+                    base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
                 else:
                     base_url = "unknown"
             
-            api_key = llm_config.get('api_key', '')
-            masked_key = api_key[:8] + "****" + api_key[-4:] if len(api_key) > 12 else "****"
-            
-            logger.info(f"==> 发送请求到第三方 LLM (尝试 {attempt + 1}/{MAX_RETRIES}): {provider} - {model}")
-            logger.info(f"    请求地址: {base_url}")
-            logger.info(f"    API Key: {masked_key}")
-            logger.info(f"    请求内容: {user_message[:200]}")
+            logger.info(f"==> 发送请求到第三方 LLM (尝试 {attempt + 1}/{MAX_RETRIES}): provider={provider}, model={model}")
             
             try:
                 # Get format instructions from parser
@@ -175,6 +171,15 @@ class IntentRecognitionService:
                     user_message=user_message,
                     format_instructions=format_instructions,
                 )
+                
+                # Log all LLM input parameters (with masked sensitive keys)
+                logger.info(f"==> LLM 请求参数:")
+                logger.info(f"    provider: {provider}")
+                logger.info(f"    model: {model}")
+                logger.info(f"    base_url: {base_url}")
+                logger.info(f"    temperature: {self.llm.temperature}")
+                logger.info(f"    request_timeout: {self.llm.request_timeout}")
+                logger.info(f"    prompt: {prompt_value[:500]}...")
                 
                 # Call LLM with structured output
                 response = self.llm.invoke([HumanMessage(content=prompt_value)])
