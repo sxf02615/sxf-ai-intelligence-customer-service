@@ -201,6 +201,7 @@ async def chat_endpoint(
                 response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
                 intent=IntentType.LOGISTICS.value,
                 session_id=request.session_id,
+                context={"pending_order_id": order_id, "pending_intent": "logistics"},
             )
         
         # Format logistics response
@@ -283,7 +284,7 @@ async def chat_endpoint(
                 session_id=request.session_id,
                 needs_clarification=True,
                 clarification_question="请提供订单号",
-                context={"pending_order_id": None},
+                context={"pending_order_id": None, "pending_intent": "cancel"},
             )
         
         # 检查订单是否存在
@@ -295,6 +296,7 @@ async def chat_endpoint(
                 response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
                 intent=IntentType.CANCEL.value,
                 session_id=request.session_id,
+                context={"pending_order_id": order_id, "pending_intent": "cancel"},
             )
         
         result = cancel_service.cancel_order(order_id, user_detail)
@@ -329,7 +331,7 @@ async def chat_endpoint(
         session_id=request.session_id,
         needs_clarification=True,
         clarification_question="请告诉我您需要什么帮助？",
-        context={"pending_order_id": None},
+        context={"pending_order_id": None, "pending_intent": None},
     )
 
 
