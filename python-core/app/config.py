@@ -21,6 +21,7 @@ class LLMProvider(str, Enum):
     OPENAI = "openai"
     DEEPSEEK = "deepseek"
     DOUBAO = "doubao"
+    QWEN = "qwen"
 
 
 class LLMConfig(BaseModel):
@@ -170,6 +171,8 @@ def load_settings() -> Settings:
         provider = LLMProvider.DEEPSEEK
     elif provider_value == "doubao":
         provider = LLMProvider.DOUBAO
+    elif provider_value == "qwen":
+        provider = LLMProvider.QWEN
     
     # Get API key based on provider
     api_key = ""
@@ -179,6 +182,8 @@ def load_settings() -> Settings:
         api_key = _get_env("DEEPSEEK_API_KEY", "")
     elif provider == LLMProvider.DOUBAO:
         api_key = _get_env("DOUBAO_API_KEY", "")
+    elif provider == LLMProvider.QWEN:
+        api_key = _get_env("QWEN_API_KEY", "")
     
     # Get model based on provider
     model = ""
@@ -188,6 +193,8 @@ def load_settings() -> Settings:
         model = _get_env("DEEPSEEK_MODEL", "deepseek-chat")
     elif provider == LLMProvider.DOUBAO:
         model = _get_env("DOUBAO_MODEL", "Doubao-pro-32k")
+    elif provider == LLMProvider.QWEN:
+        model = _get_env("QWEN_MODEL", "qwen-turbo")
     
     # Get base URL if provided
     base_url = _get_env("LLM_BASE_URL", "")

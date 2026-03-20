@@ -104,6 +104,13 @@ class LLMFactory:
                     doubao_params["base_url"] = "https://ark.cn-beijing.volces.com/api/v3"
                 return ChatOpenAI(**doubao_params)
             
+            elif provider == LLMProvider.QWEN:
+                # Qwen (Alibaba) uses OpenAI-compatible API
+                qwen_params = common_params.copy()
+                if not base_url:
+                    qwen_params["base_url"] = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                return ChatOpenAI(**qwen_params)
+            
             else:
                 raise ValueError(f"Unsupported LLM provider: {provider}")
         except Exception as e:
