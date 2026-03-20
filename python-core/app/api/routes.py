@@ -128,6 +128,7 @@ async def chat_endpoint(
     # 步骤1：从用户消息中识别意图
     logger.info(f"==> 收到聊天请求: session_id={request.session_id}, message={request.message}")
     logger.info(f"    请求context: {request.context}")
+    logger.info(f"    请求context类型: {type(request.context)}")
     
     intent_result = intent_service.recognize(request.message)
     
@@ -135,7 +136,10 @@ async def chat_endpoint(
     if intent_result.needs_clarification:
         # 尝试从请求的context中获取之前保存的订单号
         saved_order_id = None
-        if request.context and "pending_order_id" in request.context:
+        logger.info(f"    request.context检查: {request.context}")
+        logger.info(f"    request.context是否为dict: {isinstance(request.context, dict)}")
+        
+        if request.context and isinstance(request.context, dict):
             saved_order_id = request.context.get("pending_order_id")
         
         logger.info(f"    意图识别结果: intent={intent_result.intent.value}, confidence={intent_result.confidence:.2f}, order_id={intent_result.entities.order_id}")

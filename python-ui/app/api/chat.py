@@ -37,6 +37,7 @@ class ChatResponse(BaseModel):
     session_id: Optional[str] = None
     needs_clarification: bool = False
     message: Optional[str] = None
+    context: Optional[dict] = None
 
 
 class JavaChatRequest(BaseModel):
@@ -213,7 +214,8 @@ async def chat(
             response=data.get("response", ""),
             intent=data.get("intent"),
             session_id=data.get("session_id"),
-            needs_clarification=data.get("needs_clarification", False)
+            needs_clarification=data.get("needs_clarification", False),
+            context=data.get("context")
         )
     else:
         # 聊天处理失败

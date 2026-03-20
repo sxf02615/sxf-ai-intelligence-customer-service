@@ -21,6 +21,7 @@ class ChatApplication {
         this.sessionId = null;
         this.userId = null;
         this.isLoading = false;
+        this.context = null;  // 保存上下文
         
         this.init();
     }
@@ -113,6 +114,8 @@ class ChatApplication {
             
             if (response.success) {
                 this.sessionId = response.session_id;
+                this.context = response.context;  // 保存上下文
+                console.log('    保存context:', this.context);
                 
                 // Show typing indicator
                 this.showTypingIndicator();
@@ -144,12 +147,14 @@ class ChatApplication {
         const payload = {
             session_id: this.sessionId,
             user_id: this.userId,
-            message: message
+            message: message,
+            context: this.context
         };
         
         console.log('==> 发送请求到 Python UI 服务: /api/chat');
         console.log('    请求地址: http://127.0.0.1:8001/api/chat');
         console.log('    请求内容:', payload);
+        console.log('    发送的context:', this.context);
         
         const response = await fetch('/api/chat', {
             method: 'POST',
