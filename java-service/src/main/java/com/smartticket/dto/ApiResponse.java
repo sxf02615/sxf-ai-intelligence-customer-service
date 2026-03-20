@@ -1,5 +1,6 @@
 package com.smartticket.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
@@ -24,6 +25,8 @@ public class ApiResponse<T> {
     private T data;
     private String message;
     private String errorCode;
+    
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private Instant timestamp;
     
     /**

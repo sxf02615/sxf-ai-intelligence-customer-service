@@ -108,8 +108,8 @@ async def call_java_chat_service(
     java_url = get_java_chat_url()
     
     payload = {
-        "sessionId": session_id,
-        "userId": user_id,
+        "session_id": session_id,
+        "user_id": user_id,
         "message": message
     }
     

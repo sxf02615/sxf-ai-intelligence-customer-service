@@ -86,8 +86,20 @@ Content-Type: application/json
 创建 `.env` 文件：
 
 ```bash
-OPENAI_API_KEY=your-api-key
+# LLM 提供商 (openai/deepseek/doubao)
+LLM_PROVIDER=openai
+
+# OpenAI 配置
+OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-3.5-turbo
+
+# DeepSeek 配置
+DEEPSEEK_API_KEY=your-deepseek-api-key
+DEEPSEEK_MODEL=deepseek-chat
+
+# 豆包配置
+DOUBAO_API_KEY=your-doubao-api-key
+DOUBAO_MODEL=Doubao-pro-32k
 ```
 
 ## 启动服务
@@ -124,6 +136,24 @@ uvicorn app.main:app --reload --port 8000
 
 ## 扩展性
 
-- **LLM 可替换**: 通过配置 `LLM_PROVIDER` 切换不同模型
+- **多 LLM 支持**: 支持 OpenAI、DeepSeek、豆包等多种大模型，通过 `LLM_PROVIDER` 环境变量切换
 - **数据源可替换**: 实现 Repository 接口即可对接真实业务系统
 - **意图识别提示词**: 独立配置，可自定义
+- **LLM 工厂模式**: 易于扩展新的 LLM 提供商
+
+## LLM 切换指南
+
+详细的使用指南请参考 [LLM_SWITCHING_GUIDE.md](LLM_SWITCHING_GUIDE.md)
+
+### 快速切换示例
+
+```bash
+# 切换到 DeepSeek
+export LLM_PROVIDER=deepseek
+
+# 切换到豆包
+export LLM_PROVIDER=doubao
+
+# 切换回 OpenAI
+export LLM_PROVIDER=openai
+```
