@@ -188,11 +188,13 @@ class IntentRecognitionService:
                 # Check confidence threshold and handle clarification
                 if result.confidence < self._confidence_threshold:
                     result.needs_clarification = True
-                    result.clarification_question = self._create_clarification_question(
-                        intent=result.intent,
-                        confidence=result.confidence,
-                        entities=result.entities,
-                    )
+                    # 保留LLM返回的clarification_question，如果没有则使用默认的
+                    if not result.clarification_question:
+                        result.clarification_question = self._create_clarification_question(
+                            intent=result.intent,
+                            confidence=result.confidence,
+                            entities=result.entities,
+                        )
                     logger.info(
                         f"意图 '{result.intent.value}' 置信度较低 ({result.confidence:.2f})，"
                         f"请求澄清"
@@ -201,11 +203,13 @@ class IntentRecognitionService:
                 # Check if order_id is missing
                 if not result.entities.order_id:
                     result.needs_clarification = True
-                    result.clarification_question = self._create_clarification_question(
-                        intent=result.intent,
-                        confidence=result.confidence,
-                        entities=result.entities,
-                    )
+                    # 保留LLM返回的clarification_question，如果没有则使用默认的
+                    if not result.clarification_question:
+                        result.clarification_question = self._create_clarification_question(
+                            intent=result.intent,
+                            confidence=result.confidence,
+                            entities=result.entities,
+                        )
                     logger.info(
                         f"意图 '{result.intent.value}' 缺少order_id，"
                         f"请求澄清"

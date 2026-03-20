@@ -73,6 +73,7 @@ class LLMFactory:
             "model": model,
             "api_key": api_key,
             "temperature": temperature,
+            "request_timeout": 30,  # 超时时间30秒
         }
         
         # Add base_url if provided

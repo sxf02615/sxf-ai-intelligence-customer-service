@@ -14,9 +14,8 @@ public class TicketServiceClientConfig {
 
     @Bean
     public Request.Options ticketServiceRequestOptions() {
-        // 配置超时选项以防止启动时挂起
-        // 连接超时：5秒，读取超时：10秒
-        return new Request.Options(5000, 10000);
+        // 配置超时选项：连接超时30秒，读取超时30秒
+        return new Request.Options(30 * 1000, 30 * 1000);
     }
 
     @Bean

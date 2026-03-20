@@ -141,9 +141,10 @@ async def chat_endpoint(
         
         if request.context and isinstance(request.context, dict):
             saved_order_id = request.context.get("pending_order_id")
+            saved_intent = request.context.get("pending_intent")
         
         logger.info(f"    意图识别结果: intent={intent_result.intent.value}, confidence={intent_result.confidence:.2f}, order_id={intent_result.entities.order_id}")
-        logger.info(f"    需要澄清: needs_clarification=True, saved_order_id={saved_order_id}")
+        logger.info(f"    需要澄清: needs_clarification=True, saved_order_id={saved_order_id}, saved_intent={saved_intent}")
         
         # 如果有保存的订单号且用户确认了，直接处理
         if saved_order_id and _is_confirmation(request.message):
@@ -151,19 +152,25 @@ async def chat_endpoint(
             intent_result.entities.order_id = saved_order_id
             intent_result.needs_clarification = False
         else:
-            # 保存当前识别的订单号到context，供下次使用
-            response_context = {"pending_order_id": intent_result.entities.order_id} if intent_result.entities.order_id else None
+            # 保存当前识别的订单号和意图到context，供下次使用
+            # 即使没有订单号，也要返回context以便前端保存
+            response_context = {
+                "pending_order_id": intent_result.entities.order_id,
+                "pending_intent": intent_result.intent.value
+            }
+            # 使用LLM返回的clarification_question作为响应
+            response_text = intent_result.clarification_question or "请提供更多信息以便我帮助您。"
             response = ChatResponse(
                 success=True,
-                response=intent_result.clarification_question or "请提供更多信息以便我帮助您。",
+                response=response_text,
                 intent=intent_result.intent.value,
                 session_id=request.session_id,
                 needs_clarification=True,
                 clarification_question=intent_result.clarification_question,
                 context=response_context,
             )
-            logger.info(f"<== 返回响应: needs_clarification=True, response={response.response[:50]}...")
-            logger.info(f"    返回context: {response_context}")
+            logger.info(f"<== 返回响应: needs_clarification=True, response={response_text[:50]}...")
+            logger.info(f"    返回context: {response_context}, order_id_from_intent={intent_result.entities.order_id}")
             return response
     
     # 步骤3：根据意图路由到相应的服务
@@ -183,7 +190,7 @@ async def chat_endpoint(
                 session_id=request.session_id,
                 needs_clarification=True,
                 clarification_question="请提供订单号",
-                context={"pending_order_id": None},
+                context={"pending_order_id": None, "pending_intent": "logistics"},
             )
         
         logistics_info = logistics_service.get_logistics_info(order_id)
@@ -214,6 +221,7 @@ async def chat_endpoint(
             response=response_text.strip(),
             intent=IntentType.LOGISTICS.value,
             session_id=request.session_id,
+            context={"pending_order_id": order_id, "pending_intent": "logistics"},
         )
     
     elif intent_result.intent == IntentType.URGENT:
@@ -229,7 +237,7 @@ async def chat_endpoint(
                 session_id=request.session_id,
                 needs_clarification=True,
                 clarification_question="请提供订单号",
-                context={"pending_order_id": None},
+                context={"pending_order_id": None, "pending_intent": "urgent"},
             )
         
         # 检查订单是否存在
@@ -241,6 +249,7 @@ async def chat_endpoint(
                 response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
                 intent=IntentType.URGENT.value,
                 session_id=request.session_id,
+                context={"pending_order_id": order_id, "pending_intent": "urgent"},
             )
         
         result = urgent_service.create_urgent_ticket(order_id, user_detail)
@@ -258,6 +267,7 @@ async def chat_endpoint(
             response=response_text,
             intent=IntentType.URGENT.value,
             session_id=request.session_id,
+            context={"pending_order_id": order_id, "pending_intent": "urgent"},
         )
     
     elif intent_result.intent == IntentType.CANCEL:
@@ -307,6 +317,7 @@ async def chat_endpoint(
             response=response_text,
             intent=IntentType.CANCEL.value,
             session_id=request.session_id,
+            context={"pending_order_id": order_id, "pending_intent": "cancel"},
         )
     
     # Fallback for unknown intent

@@ -132,7 +132,11 @@ class ChatApplication {
             }
         } catch (error) {
             console.error('Message send error:', error);
-            this.showError('网络错误，请稍后重试');
+            if (error.name === 'AbortError') {
+                this.showError('请求超时，请稍后重试');
+            } else {
+                this.showError('网络错误，请稍后重试');
+            }
         } finally {
             this.setLoading(false);
         }
@@ -156,13 +160,20 @@ class ChatApplication {
         console.log('    请求内容:', payload);
         console.log('    发送的context:', this.context);
         
+        // 设置30秒超时
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
 
         const result = await response.json();
         
