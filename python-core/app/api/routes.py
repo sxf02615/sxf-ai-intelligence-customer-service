@@ -30,6 +30,12 @@ from data.mock_data import MockOrderRepository, MockLogisticsRepository, MockTic
 router = APIRouter()
 
 
+def _is_confirmation(message: str) -> bool:
+    """判断用户消息是否为确认回答。"""
+    confirm_keywords = ["是的", "对", "确认", "正确", "ok", "yes", "y", "好", "可以", "来"]
+    return any(keyword in message.lower() for keyword in [k.lower() for k in confirm_keywords])
+
+
 # 服务实例的依赖函数
 def get_order_repository() -> OrderRepository:
     """获取订单仓库实例。"""
@@ -90,6 +96,7 @@ class ChatResponse(BaseModel):
     session_id: str
     needs_clarification: bool = False
     clarification_question: Optional[str] = None
+    context: Optional[dict] = None
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -118,16 +125,29 @@ async def chat_endpoint(
     # 步骤1：从用户消息中识别意图
     intent_result = intent_service.recognize(request.message)
     
-    # 步骤2：如有需要处理澄清
+    # 步骤2：如果需要澄清，检查是否有上下文中的订单号
     if intent_result.needs_clarification:
-        return ChatResponse(
-            success=True,
-            response=intent_result.clarification_question or "请提供更多信息以便我帮助您。",
-            intent=intent_result.intent.value,
-            session_id=request.session_id,
-            needs_clarification=True,
-            clarification_question=intent_result.clarification_question,
-        )
+        # 尝试从请求的context中获取之前保存的订单号
+        saved_order_id = None
+        if request.context and "pending_order_id" in request.context:
+            saved_order_id = request.context.get("pending_order_id")
+        
+        # 如果有保存的订单号且用户确认了，直接处理
+        if saved_order_id and _is_confirmation(request.message):
+            intent_result.entities.order_id = saved_order_id
+            intent_result.needs_clarification = False
+        else:
+            # 保存当前识别的订单号到context，供下次使用
+            response_context = {"pending_order_id": intent_result.entities.order_id} if intent_result.entities.order_id else None
+            return ChatResponse(
+                success=True,
+                response=intent_result.clarification_question or "请提供更多信息以便我帮助您。",
+                intent=intent_result.intent.value,
+                session_id=request.session_id,
+                needs_clarification=True,
+                clarification_question=intent_result.clarification_question,
+                context=response_context,
+            )
     
     # 步骤3：根据意图路由到相应的服务
     order_id = intent_result.entities.order_id
@@ -143,13 +163,14 @@ async def chat_endpoint(
                 session_id=request.session_id,
                 needs_clarification=True,
                 clarification_question="请提供订单号",
+                context={"pending_order_id": None},
             )
         
         logistics_info = logistics_service.get_logistics_info(order_id)
         if not logistics_info:
             return ChatResponse(
                 success=False,
-                response=f"未找到订单 {order_id}，请检查订单号是否正确",
+                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
                 intent=IntentType.LOGISTICS.value,
                 session_id=request.session_id,
             )
@@ -182,6 +203,17 @@ async def chat_endpoint(
                 session_id=request.session_id,
                 needs_clarification=True,
                 clarification_question="请提供订单号",
+                context={"pending_order_id": None},
+            )
+        
+        # 检查订单是否存在
+        order = logistics_service.order_repository.get_by_id(order_id)
+        if not order:
+            return ChatResponse(
+                success=False,
+                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
+                intent=IntentType.URGENT.value,
+                session_id=request.session_id,
             )
         
         result = urgent_service.create_urgent_ticket(order_id, user_detail)
@@ -209,6 +241,17 @@ async def chat_endpoint(
                 session_id=request.session_id,
                 needs_clarification=True,
                 clarification_question="请提供订单号",
+                context={"pending_order_id": None},
+            )
+        
+        # 检查订单是否存在
+        order = logistics_service.order_repository.get_by_id(order_id)
+        if not order:
+            return ChatResponse(
+                success=False,
+                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
+                intent=IntentType.CANCEL.value,
+                session_id=request.session_id,
             )
         
         result = cancel_service.cancel_order(order_id, user_detail)
@@ -239,6 +282,7 @@ async def chat_endpoint(
         session_id=request.session_id,
         needs_clarification=True,
         clarification_question="请告诉我您需要什么帮助？",
+        context={"pending_order_id": None},
     )
 
 
