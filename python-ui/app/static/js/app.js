@@ -112,24 +112,21 @@ class ChatApplication {
             console.log('    response.success:', response.success);
             console.log('    response:', response);
             
-            if (response.success) {
-                this.sessionId = response.session_id;
-                this.context = response.context;  // 保存上下文
-                console.log('    保存context:', this.context);
-                
-                // Show typing indicator
-                this.showTypingIndicator();
-                
-                // Simulate typing delay
-                await this.delay(800);
-                this.hideTypingIndicator();
-                
-                // Add assistant response with intent-specific formatting
-                this.addAssistantMessage(response);
-            } else {
-                console.log('    显示错误:', response.message);
-                this.showError(response.message || '处理失败，请稍后重试');
-            }
+            // 无论 success 是 true 还是 false，都保存 session_id 和 context
+            this.sessionId = response.session_id;
+            this.context = response.context;  // 保存上下文
+            console.log('    保存context:', this.context);
+            
+            // Show typing indicator
+            this.showTypingIndicator();
+            
+            // Simulate typing delay
+            await this.delay(800);
+            this.hideTypingIndicator();
+            
+            // Add assistant response with intent-specific formatting
+            // 显示 response 字段的内容，无论 success 是 true 还是 false
+            this.addAssistantMessage(response);
         } catch (error) {
             console.error('Message send error:', error);
             if (error.name === 'AbortError') {
