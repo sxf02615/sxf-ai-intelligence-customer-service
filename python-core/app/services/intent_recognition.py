@@ -3,6 +3,9 @@
 
 使用LangChain和结构化输出进行意图分类和实体提取。
 支持多种LLM提供商：OpenAI、DeepSeek、豆包等。
+
+作者: 智能客服团队
+版本: 1.0.0
 """
 import logging
 import time
@@ -28,7 +31,7 @@ MAX_RETRIES = 3
 RETRY_DELAY = 1  # 秒
 
 
-# Prompt template for intent classification
+# 意图分类提示模板
 INTENT_CLASSIFICATION_PROMPT = """你是一个智能客服系统的意图识别助手。
 
 用户消息: {user_message}
@@ -63,11 +66,12 @@ class IntentRecognitionService:
         self._llm = None
         self._prompt = None
         self._parser = None
+        # 置信度阈值
         self._confidence_threshold = settings.intent.confidence_threshold
         
     @property
     def llm(self):
-        """LLM的延迟初始化。"""
+        """获取LLM实例，使用延迟初始化。"""
         if self._llm is None:
             self._llm = LLMFactory.get_default_llm(temperature=0)
         return self._llm
@@ -80,7 +84,7 @@ class IntentRecognitionService:
                 ("human", INTENT_CLASSIFICATION_PROMPT)
             ])
         return self._prompt
-    
+
     @property
     def parser(self) -> PydanticOutputParser:
         """获取IntentResult的Pydantic输出解析器。"""
@@ -131,23 +135,23 @@ class IntentRecognitionService:
         """
         从用户消息中识别意图并提取实体。
 
-        Args:
+        参数:
             user_message: 用户的输入消息
             conversation_history: 可选的对话历史用于上下文
 
-        Returns:
+        返回:
             IntentResult: 识别的意图和提取的实体
         """
         last_error = None
         
         for attempt in range(MAX_RETRIES):
-            # Get LLM configuration
+            # 获取LLM配置
             llm_config = get_llm_config()
             provider = llm_config.get('provider')
             model = llm_config.get('model')
             base_url = llm_config.get('base_url')
-            
-            # Construct actual URL based on provider if not set
+
+            # 如果未设置base_url，则根据提供商构建实际URL
             if not base_url:
                 if provider == "deepseek":
                     base_url = "https://api.deepseek.com/v1"
@@ -163,34 +167,36 @@ class IntentRecognitionService:
             logger.info(f"==> 发送请求到第三方 LLM (尝试 {attempt + 1}/{MAX_RETRIES}): provider={provider}, model={model}")
             
             try:
-                # Get format instructions from parser
+                # 从解析器获取格式指令
                 format_instructions = self.parser.get_format_instructions()
                 
-                # Create the prompt with user message
+                logger.info(f"格式指令:{format_instructions}")
+
+                # 根据用户信息创建提示
                 prompt_value = self.prompt.format(
                     user_message=user_message,
                     format_instructions=format_instructions,
                 )
                 
-                # Log all LLM input parameters (with masked sensitive keys)
+                # 记录所有LLM输入参数（已掩码敏感密钥）
                 logger.info(f"==> LLM 请求参数:")
                 logger.info(f"    provider: {provider}")
                 logger.info(f"    model: {model}")
                 logger.info(f"    base_url: {base_url}")
                 logger.info(f"    temperature: {self.llm.temperature}")
                 logger.info(f"    request_timeout: {self.llm.request_timeout}")
-                logger.info(f"    prompt: {prompt_value[:500]}...")
+                logger.info(f"    prompt: {prompt_value[:1500]}...")
                 
-                # Call LLM with structured output
+                # 使用结构化输出调用LLM
                 response = self.llm.invoke([HumanMessage(content=prompt_value)])
-                
-                # Log the LLM response
+
+                # 记录LLM响应
                 logger.info(f"<== 收到第三方 LLM 响应: {response.content[:500]}")
-                
-                # Parse the response into IntentResult
+
+                # 将响应解析为IntentResult
                 result = self.parser.parse(response.content)
-                
-                # Check confidence threshold and handle clarification
+
+                # 检查置信度阈值并处理澄清
                 if result.confidence < self._confidence_threshold:
                     result.needs_clarification = True
                     # 保留LLM返回的clarification_question，如果没有则使用默认的
@@ -205,7 +211,7 @@ class IntentRecognitionService:
                         f"请求澄清"
                     )
                 
-                # Check if order_id is missing
+                # 检查order_id是否缺失
                 if not result.entities.order_id:
                     result.needs_clarification = True
                     # 保留LLM返回的clarification_question，如果没有则使用默认的
@@ -270,15 +276,15 @@ class IntentRecognitionService:
         )
 
 
-# Global service instance
+# 全局服务实例
 intent_recognition_service = IntentRecognitionService()
 
 
 def get_intent_recognition_service() -> IntentRecognitionService:
     """
     获取意图识别服务实例。
-    
-    Returns:
+
+    返回:
         IntentRecognitionService: 服务实例
     """
     return intent_recognition_service
