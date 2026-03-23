@@ -125,7 +125,7 @@ async def chat_endpoint(
     返回：
         包含意图、响应文本和会话信息的ChatResponse
     """
-    # 步骤1：检查是否有上下文中的待处理意图
+    # 步骤1：检查是否有上下文中的待处理意图或订单号
     logger.info(f"==> 收到聊天请求: session_id={request.session_id}, message={request.message}")
     logger.info(f"    请求context: {request.context}")
     logger.info(f"    请求context类型: {type(request.context)}")
@@ -139,32 +139,74 @@ async def chat_endpoint(
     logger.info(f"    上下文信息: saved_order_id={saved_order_id}, saved_intent={saved_intent}")
     
     # 步骤2：识别意图
-    intent_result = intent_service.recognize(request.message)
-    logger.info(f"    意图识别结果: intent={intent_result.intent.value}, confidence={intent_result.confidence:.2f}, order_id={intent_result.entities.order_id}")
+    # 优化1：如果有保存的意图且之前缺少订单号，优先使用保存的意图，只提取订单号
+    # 优化2：如果有保存的订单号，检查当前消息是否包含明确的意图
+    # 优化3：如果有保存的订单号且之前缺少意图，优先提取意图，使用保存的订单号
     
-    # 步骤3：如果有保存的意图且当前消息提供了订单号，使用保存的意图
-    if saved_intent and intent_result.entities.order_id and not saved_order_id:
-        logger.info(f"    检测到用户提供订单号，使用保存的意图: {saved_intent}")
-        # 将意图改为保存的意图
-        intent_result.intent = IntentType(saved_intent)
-        intent_result.needs_clarification = False
-        intent_result.confidence = 1.0
+    if saved_intent and not saved_order_id:
+        # 场景1：有意图，缺订单号 → 只提取订单号
+        logger.info(f"    检测到待处理意图: {saved_intent}，尝试从当前消息提取订单号")
+        intent_result = intent_service.recognize(request.message)
+        logger.info(f"    提取结果: order_id={intent_result.entities.order_id}")
+        
+        if intent_result.entities.order_id:
+            logger.info(f"    成功提取订单号，使用保存的意图: {saved_intent}")
+            intent_result.intent = IntentType(saved_intent)
+            intent_result.needs_clarification = False
+            intent_result.confidence = 1.0
+        else:
+            logger.info(f"    未提取到订单号，继续请求用户提供")
+            intent_result.intent = IntentType(saved_intent)
+            intent_result.needs_clarification = True
+            intent_result.clarification_question = "请提供订单号，例如：ORD001"
+            
+    elif saved_order_id:
+        # 场景2：有订单号（无论是否有意图）→ 识别当前消息的意图
+        logger.info(f"    检测到保存的订单号: {saved_order_id}，识别当前消息的意图")
+        intent_result = intent_service.recognize(request.message)
+        logger.info(f"    识别结果: intent={intent_result.intent.value}, confidence={intent_result.confidence:.2f}, order_id={intent_result.entities.order_id}")
+        
+        # 使用保存的订单号（除非当前消息提供了新的订单号）
+        if not intent_result.entities.order_id:
+            intent_result.entities.order_id = saved_order_id
+            logger.info(f"    使用保存的订单号: {saved_order_id}")
+        
+        # 如果意图明确（置信度高且不需要澄清），直接使用
+        if intent_result.confidence >= 0.7 and not intent_result.needs_clarification:
+            logger.info(f"    意图明确: {intent_result.intent.value}，置信度: {intent_result.confidence:.2f}")
+            intent_result.needs_clarification = False
+        else:
+            # 意图不明确，请求用户澄清
+            logger.info(f"    意图不明确，请求用户澄清")
+            intent_result.needs_clarification = True
+            if not intent_result.clarification_question:
+                intent_result.clarification_question = f"请问您想对订单 {saved_order_id} 做什么？查询物流、催单还是取消订单？"
+                
+    else:
+        # 场景3：正常识别意图（没有保存的上下文）
+        intent_result = intent_service.recognize(request.message)
+        logger.info(f"    意图识别结果: intent={intent_result.intent.value}, confidence={intent_result.confidence:.2f}, order_id={intent_result.entities.order_id}")
     
-    # 步骤4：如果需要澄清，处理澄清逻辑
+    # 步骤3：如果需要澄清，处理澄清逻辑
     if intent_result.needs_clarification:
         logger.info(f"    需要澄清: needs_clarification=True")
         
-        # 如果有保存的订单号且用户确认了，直接处理
+        # 情况1：如果有保存的订单号且用户确认了，直接处理
         if saved_order_id and _is_confirmation(request.message):
             logger.info(f"    用户确认订单号: {saved_order_id}")
             intent_result.entities.order_id = saved_order_id
             intent_result.needs_clarification = False
             if saved_intent:
                 intent_result.intent = IntentType(saved_intent)
+        # 情况2：如果有保存的订单号，且当前识别到了明确的意图（置信度高），直接处理
+        elif saved_order_id and intent_result.confidence >= 0.7:
+            logger.info(f"    检测到明确的意图: {intent_result.intent.value}，使用保存的订单号: {saved_order_id}")
+            intent_result.entities.order_id = saved_order_id
+            intent_result.needs_clarification = False
         else:
             # 保存当前识别的订单号和意图到context，供下次使用
             response_context = {
-                "pending_order_id": intent_result.entities.order_id,
+                "pending_order_id": intent_result.entities.order_id or saved_order_id,
                 "pending_intent": intent_result.intent.value
             }
             # 使用LLM返回的clarification_question作为响应
@@ -182,7 +224,7 @@ async def chat_endpoint(
             logger.info(f"    返回context: {response_context}")
             return response
     
-    # 步骤3：根据意图路由到相应的服务
+    # 步骤4：根据意图路由到相应的服务
     order_id = intent_result.entities.order_id
     user_detail = intent_result.entities.user_detail
     
@@ -207,10 +249,12 @@ async def chat_endpoint(
             logger.info(f"    订单不存在: {order_id}")
             return ChatResponse(
                 success=False,
-                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
+                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确。请重新提供正确的订单号。",
                 intent=IntentType.LOGISTICS.value,
                 session_id=request.session_id,
-                context={"pending_order_id": order_id, "pending_intent": "logistics"},
+                needs_clarification=True,
+                clarification_question="请提供正确的订单号",
+                context={"pending_order_id": None, "pending_intent": "logistics"},
             )
         
         # 格式化物流响应
@@ -256,10 +300,12 @@ async def chat_endpoint(
             logger.info(f"    订单不存在: {order_id}")
             return ChatResponse(
                 success=False,
-                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
+                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确。请重新提供正确的订单号。",
                 intent=IntentType.URGENT.value,
                 session_id=request.session_id,
-                context={"pending_order_id": order_id, "pending_intent": "urgent"},
+                needs_clarification=True,
+                clarification_question="请提供正确的订单号",
+                context={"pending_order_id": None, "pending_intent": "urgent"},
             )
         
         result = urgent_service.create_urgent_ticket(order_id, user_detail)
@@ -302,10 +348,12 @@ async def chat_endpoint(
             logger.info(f"    订单不存在: {order_id}")
             return ChatResponse(
                 success=False,
-                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确",
+                response=f"查询的订单 {order_id} 不存在，请检查订单号是否正确。请重新提供正确的订单号。",
                 intent=IntentType.CANCEL.value,
                 session_id=request.session_id,
-                context={"pending_order_id": order_id, "pending_intent": "cancel"},
+                needs_clarification=True,
+                clarification_question="请提供正确的订单号",
+                context={"pending_order_id": None, "pending_intent": "cancel"},
             )
         
         result = cancel_service.cancel_order(order_id, user_detail)
