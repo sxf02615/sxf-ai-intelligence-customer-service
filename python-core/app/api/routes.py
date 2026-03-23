@@ -1,11 +1,11 @@
 """
-API routes for the Smart Ticket System.
+智能工单系统的API路由。
 
-This module defines the API endpoints for:
-- Chat/Intent recognition
-- Logistics queries
-- Urgent ticket creation
-- Order cancellation
+本模块定义了以下API端点：
+- 聊天/意图识别
+- 物流查询
+- 催单工单创建
+- 订单取消
 """
 
 import logging
@@ -29,7 +29,7 @@ from app.repositories.base import OrderRepository, LogisticsRepository, TicketRe
 from data.mock_data import MockOrderRepository, MockLogisticsRepository, MockTicketRepository
 
 
-# 创建主路由
+# 创建主路由器
 router = APIRouter()
 
 
@@ -92,7 +92,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Response model for chat endpoint."""
+    """聊天端点响应模型。"""
     success: bool
     response: str
     intent: str
@@ -111,19 +111,19 @@ async def chat_endpoint(
     cancel_service: CancelService = Depends(get_cancel_service),
 ) -> ChatResponse:
     """
-    Chat endpoint for intent recognition and routing.
+    聊天端点，用于意图识别和路由。
     
-    This endpoint:
-    1. Receives user message with session info
-    2. Uses intent recognition to identify user intent
-    3. Routes to appropriate service (logistics, urgent, cancel)
-    4. Returns structured response with intent, response text, and session info
+    此端点的功能：
+    1. 接收包含会话信息的用户消息
+    2. 使用意图识别来识别用户意图
+    3. 路由到相应的服务（物流、催单、取消）
+    4. 返回包含意图、响应文本和会话信息的结构化响应
     
-    Args:
-        request: ChatRequest containing session_id, user_id, and message
+    参数：
+        request: 包含session_id、user_id和message的ChatRequest
         
-    Returns:
-        ChatResponse with intent, response text, and session info
+    返回：
+        包含意图、响应文本和会话信息的ChatResponse
     """
     # 步骤1：检查是否有上下文中的待处理意图
     logger.info(f"==> 收到聊天请求: session_id={request.session_id}, message={request.message}")
@@ -213,7 +213,7 @@ async def chat_endpoint(
                 context={"pending_order_id": order_id, "pending_intent": "logistics"},
             )
         
-        # Format logistics response
+        # 格式化物流响应
         response_text = f"订单 {order_id} 的物流信息：\n"
         response_text += f"最新状态：{logistics_info.latest_status}\n"
         if logistics_info.estimated_delivery:
@@ -331,7 +331,7 @@ async def chat_endpoint(
             context={"pending_order_id": order_id, "pending_intent": "cancel"},
         )
     
-    # Fallback for unknown intent
+    # 未知意图的后备处理
     logger.info(f"    未知意图，跳转到fallback")
     return ChatResponse(
         success=True,
@@ -350,16 +350,16 @@ async def get_logistics(
     logistics_service: LogisticsService = Depends(get_logistics_service),
 ) -> dict:
     """
-    Get logistics information for an order.
+    获取订单的物流信息。
     
-    Args:
-        order_id: Order ID (format: ORD+number)
-        logistics_service: Logistics service instance
+    参数：
+        order_id: 订单号（格式：ORD+数字）
+        logistics_service: 物流服务实例
         
-    Returns:
-        Logistics information including status, tracking history, and estimated delivery
+    返回：
+        包含状态、跟踪历史和预计送达时间的物流信息
     """
-    # Validate order_id format (ORD+数字)
+    # 验证订单号格式（ORD+数字）
     import re
     if not re.match(r'^ORD\d+$', order_id):
         return {
@@ -368,10 +368,10 @@ async def get_logistics(
             "message": "订单号格式不正确，请使用 ORD+数字 的格式，例如：ORD001"
         }
     
-    # Get logistics information
+    # 获取物流信息
     logistics_info = logistics_service.get_logistics_info(order_id)
     
-    # Handle order not found
+    # 处理订单未找到的情况
     if not logistics_info:
         return {
             "success": False,
@@ -379,7 +379,7 @@ async def get_logistics(
             "message": f"未找到订单 {order_id}，请检查订单号是否正确"
         }
     
-    # Return formatted logistics information
+    # 返回格式化的物流信息
     return {
         "success": True,
         "data": {
@@ -405,14 +405,14 @@ async def create_urgent_ticket(
     urgent_service: UrgentService = Depends(get_urgent_service),
 ) -> dict:
     """
-    Create an urgent ticket for an order.
+    为订单创建催单工单。
     
-    Args:
-        request: Request containing order_id and optional reason
-        urgent_service: Urgent ticket service instance
+    参数：
+        request: 包含order_id和可选reason的请求
+        urgent_service: 催单工单服务实例
         
-    Returns:
-        Ticket information including ticket_id, estimated processing time, and contact
+    返回：
+        包含ticket_id、预计处理时间和联系方式的工单信息
     """
     order_id = request.get("order_id")
     reason = request.get("reason")
@@ -442,14 +442,14 @@ async def cancel_order(
     cancel_service: CancelService = Depends(get_cancel_service),
 ) -> dict:
     """
-    Cancel an order and process refund.
+    取消订单并处理退款。
     
-    Args:
-        request: Request containing order_id and reason
-        cancel_service: Cancel order service instance
+    参数：
+        request: 包含order_id和reason的请求
+        cancel_service: 取消订单服务实例
         
-    Returns:
-        Cancel result including refund amount and arrival time
+    返回：
+        包含退款金额和到账时间的取消结果
     """
     order_id = request.get("order_id")
     reason = request.get("reason")
